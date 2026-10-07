@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tìm kiếm mù &amp; có kinh nghiệm — Ôn tập trực quan</title>
+<style>
+  :root{
+    --bg:#f5f5f2;
+    --panel:#ffffff;
+    --ink:#171717;
+    --panel2:#fbfbfd;
+    --shadow:0 18px 50px rgba(20,20,30,.08);
+    --muted:#777;
+    --line:#cfcfc8;
+    --good:#147a45;
+    --bad:#b83232;
+    --warn:#9a6a12;
+    --blue:#2563eb;
+    --red:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    padding:18px 22px 12px;border-bottom:1px solid #ddd;background:rgba(255,255,255,.9);
+    position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);
+  }
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .navlink{
+    padding:6px 13px;border-radius:999px;border:1px solid #cfcfc9;background:#fff;
+    color:#555;text-decoration:none;font-size:13px;font-weight:700;
+  }
+  .navlink.active{background:#171717;color:#fff;border-color:#171717}
+  .navlink:hover{border-color:#999}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  h1{font-size:20px;margin:0;letter-spacing:-.02em}
+  .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+  .controls{display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+  input,select,button{font:inherit}
+  button{height:36px;border-radius:9px;border:1px solid #cfcfc9;padding:0 13px;cursor:pointer;background:#fff;color:var(--ink);font-weight:650}
+  button.primary{background:#171717;color:white;border-color:#171717}
+  button:hover{transform:translateY(-1px)}
+  button:disabled{opacity:.42;cursor:not-allowed;transform:none}
+  .tabs{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .tab{height:34px;border-radius:9px;border:1px solid #cfcfc9;background:#fff;font-weight:700;font-size:13px;padding:0 15px;color:#555}
+  .tab.active{background:#171717;color:#fff;border-color:#171717}
+  main{padding:18px}
+
+  .step-layout{max-width:1520px;margin:auto;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(400px,.95fr);gap:16px;align-items:start}
+  .canvasWrap{
+    background:
+      radial-gradient(circle at 18% 0%, rgba(37,99,235,.05), transparent 34%),
+      radial-gradient(circle at 82% 8%, rgba(220,38,38,.045), transparent 34%),
+      linear-gradient(180deg,#fff 0%,var(--panel2) 100%);
+    border:1px solid #dedee5;border-radius:20px;overflow:hidden;min-height:420px;
+    box-shadow:var(--shadow);padding:10px;
+  }
+  svg{display:block;width:100%;height:auto}
+  .legend{margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend b{color:var(--ink)}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .sidepanel{background:var(--panel);border:1px solid #ddd;border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+
+  .algo-groups{margin-bottom:12px}
+  .group-title{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .algo-seg{display:inline-flex;background:#efeef0;border:1px solid #ddd;border-radius:11px;padding:3px;gap:3px;flex-wrap:wrap}
+  .algo-seg button{border:none;background:transparent;height:32px;border-radius:8px;padding:0 12px;font-weight:700;font-size:13px;color:#555}
+  .algo-seg button:hover{transform:none}
+  .algo-seg button.active{background:#fff;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+  .player{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .player .speed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .counter{margin-left:auto;font-size:12px;font-weight:800;color:#334155}
+  .explain{margin-top:12px;background:#fff;border:1px solid #ddd;border-left:4px solid var(--blue);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.55;min-height:70px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700;color:#334155}
+  .chip b{color:#0f172a}
+  .panelrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .panelbox{border:1px solid #e5e5e5;border-radius:12px;padding:9px 11px;background:#fafafa;min-height:70px}
+  .panelbox h4{margin:0 0 6px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .fitem{display:inline-flex;align-items:center;gap:6px;background:#fff7e6;border:1px solid #f3d99b;border-radius:7px;padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:700;color:#7a5410}
+  .fitem .k{color:#b07a1e;font-weight:800}
+  .eitem{display:inline-block;background:#eef1f4;border:1px solid #dde2e8;border-radius:7px;padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:700;color:#555}
+  .frule{font-size:11px;color:var(--muted);margin:6px 0 0}
+
+  .codewrap{margin-top:12px;border:1px solid #1e293b;border-radius:12px;overflow:hidden;background:#0f172a}
+  .codehead{padding:8px 12px;background:#111827;color:#cbd5e1;font-size:12px;font-weight:700}
+  .code{margin:0;padding:8px 0;max-height:330px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55}
+  .code-line{display:flex;padding:0 10px 0 0;border-left:3px solid transparent}
+  .code-line.active{background:rgba(96,165,250,.16);border-left-color:#60a5fa}
+  .gutter{width:36px;text-align:right;padding-right:10px;color:#64748b;user-select:none;white-space:pre;flex:0 0 auto}
+  .cline{white-space:pre;color:#e2e8f0}
+  .code-line.active .cline{color:#fff;font-weight:700}
+
+  .theory{margin-top:12px;background:#fff;border:1px solid #ddd;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.6;color:#333}
+  .theory summary{cursor:pointer;font-weight:800;color:#111}
+  .theory ul{margin:8px 0 0;padding-left:20px}
+  .theory li{margin:3px 0}
+  table.cx{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+  table.cx th,table.cx td{border:1px solid #e2e2e2;padding:5px 7px;text-align:left}
+  table.cx th{background:#f5f5f2;font-weight:800}
+
+  /* graph */
+  .gnode{transition:.2s}
+  .gnode text{pointer-events:none;user-select:none}
+  .gnode .gcircle{fill:#fff;stroke:#31323a;stroke-width:2;filter:drop-shadow(0 4px 7px rgba(0,0,0,.10))}
+  .gnode .gid{font-size:12px;font-weight:800;fill:#111}
+  .gnode .gval{font-size:10.5px;font-weight:800;fill:#334155;paint-order:stroke;stroke:#fff;stroke-width:3.5px}
+  .gnode.frontier .gcircle{fill:#fff5e0;stroke:#d99a1c;stroke-width:3}
+  .gnode.explored .gcircle{fill:#eceef1;stroke:#9aa2ab}
+  .gnode.innode .gcircle{stroke:#2563eb;stroke-width:3.2}
+  .gnode.start .gcircle{stroke:var(--good);stroke-width:3.4}
+  .gnode.goal .gcircle{stroke:#b8860b;stroke-width:3.6}
+  .gnode.current .gcircle{stroke:#2563eb;stroke-width:3.6;filter:drop-shadow(0 0 10px rgba(37,99,235,.45))}
+  .gnode.solution .gcircle{stroke:var(--good);stroke-width:4;fill:#eafaf0}
+  .pulse{fill:none;stroke:#2563eb;stroke-width:2.4;transform-box:fill-box;transform-origin:center;animation:pulse 1.5s ease-out infinite}
+  @keyframes pulse{0%{opacity:.5;transform:scale(.82)}100%{opacity:0;transform:scale(1.25)}}
+  .gedge{stroke:#c9cbd3;stroke-width:2.2;transition:.2s;stroke-linecap:round}
+  .gedge.onpath{stroke:#2563eb;stroke-width:3.4}
+  .gedge.solution{stroke:var(--good);stroke-width:4}
+  .ecost{font-size:10.5px;fill:#8a8a84;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3.5px}
+  .orderbadge{font-size:10px;font-weight:900;fill:#fff}
+  .orderbg{fill:#2563eb;stroke:#fff;stroke-width:1.5}
+  .endlabel{font-size:10px;font-weight:900;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.25);stroke-width:3px}
+
+  /* practice */
+  .practicebar{max-width:1400px;margin:0 auto 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .qwrap{max-width:1400px;margin:auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(340px,.9fr);gap:16px;align-items:start}
+  .qcard{background:#fff;border:1px solid #ddd;border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+  .qtext{font-size:15px;font-weight:700;line-height:1.5;margin-bottom:12px}
+  .qopts{display:flex;flex-direction:column;gap:8px}
+  .qopt{height:auto;padding:11px 14px;text-align:left;font-size:14px;font-weight:700;line-height:1.4}
+  .qopt.correct{background:#e9f8ef;border-color:var(--good);color:#0f5b34;transform:none}
+  .qopt.wrong{background:#fdecec;border-color:var(--bad);color:#8f2626;transform:none}
+  .qfeedback{margin-top:12px;font-size:14px;line-height:1.55;border-radius:12px;padding:11px 13px;background:#f8fafc;border:1px solid #e5e7eb}
+  .qscore{margin-left:auto;font-weight:800;color:#334155}
+  .hint{font-size:12px;color:var(--muted);margin-bottom:10px}
+
+  @media(max-width:1020px){ .step-layout,.qwrap{grid-template-columns:1fr} }
+  @media(max-width:700px){
+    header{position:static}
+    main{padding:10px}
+    .panelrow{grid-template-columns:1fr}
+    .controls{width:100%}
+  }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a class="navlink" href="index.html">Đối kháng (Minimax / Alpha–Beta)</a>
+    <a class="navlink active" href="search.html">Tìm kiếm (mù &amp; kinh nghiệm)</a>
+  </nav>
+  <div class="top">
+    <div>
+      <h1>Tìm kiếm mù &amp; tìm kiếm có kinh nghiệm</h1>
+      <div class="subtitle">Đồ thị có trọng số · frontier (biên) và explored (đã xét) · mỗi bước ứng với một dòng code.</div>
+    </div>
+    <div class="controls">
+      <button id="newGraph" class="primary">Random graph</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="step">Từng bước (giải thích theo code)</button>
+    <button class="tab" data-tab="practice">Luyện tập</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== STEP VIEW ===== -->
+  <section id="stepView">
+    <div class="step-layout">
+      <div>
+        <div class="algo-groups">
+          <div class="group-title">Tìm kiếm mù (uninformed)</div>
+          <div class="algo-seg" data-group="uninformed">
+            <button data-algo="DFS">DFS</button>
+            <button data-algo="BFS">BFS</button>
+            <button data-algo="UCS">UCS</button>
+            <button data-algo="IDS">IDS</button>
+          </div>
+        </div>
+        <div class="algo-groups">
+          <div class="group-title">Tìm kiếm có kinh nghiệm (informed)</div>
+          <div class="algo-seg" data-group="informed">
+            <button data-algo="Greedy">Greedy</button>
+            <button data-algo="A*" class="active">A*</button>
+          </div>
+        </div>
+        <div class="canvasWrap" id="graphWrap"><svg id="graph"></svg></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#fff5e0;border:2px solid #d99a1c"></span><b>Frontier</b> (biên)</span>
+          <span><span class="swatch" style="background:#eceef1;border:2px solid #9aa2ab"></span><b>Explored</b> (đã xét)</span>
+          <span><span class="swatch" style="background:#eafaf0;border:2px solid #147a45"></span><b>Đường đi cuối</b></span>
+          <span><b>Vòng xanh</b> = nút đang mở rộng</span>
+          <span><b>Số xanh</b> = thứ tự mở rộng</span>
+          <span>Start = viền xanh lá · Goal = viền vàng</span>
+        </div>
+      </div>
+
+      <div class="sidepanel">
+        <div class="player">
+          <button id="btnPrev">◀ Trước</button>
+          <button id="btnNext" class="primary">Sau ▶</button>
+          <button id="btnAuto">▶ Tự động</button>
+          <button id="btnReset">↺ Về đầu</button>
+          <label class="speed">Tốc độ <input id="speed" type="range" min="1" max="10" value="5"></label>
+          <div id="stepCounter" class="counter">Bước 0 / 0</div>
+        </div>
+        <div id="explain" class="explain">Bấm <b>Sau ▶</b> để chạy thuật toán từng bước.</div>
+        <div id="chips" class="chips"></div>
+        <div class="panelrow">
+          <div class="panelbox">
+            <h4>Frontier</h4>
+            <div id="frontierList"></div>
+            <div id="frontierRule" class="frule"></div>
+          </div>
+          <div class="panelbox">
+            <h4>Explored</h4>
+            <div id="exploredList"></div>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codehead">Mã giả · <span id="codeName">A*</span></div>
+          <pre id="code" class="code"></pre>
+        </div>
+        <details class="theory">
+          <summary>Tóm tắt lý thuyết &amp; độ phức tạp</summary>
+          <ul>
+            <li><b>Trạng thái</b> → <b>hàm chuyển</b> → <b>cây/đồ thị tìm kiếm</b>. Nút trong cây = một kế hoạch; chi phí kế hoạch = tổng chi phí hành động.</li>
+            <li><b>Frontier (biên)</b> = các nút đã sinh nhưng chưa mở rộng. <b>Explored</b> = đã mở rộng.</li>
+            <li><b>Tìm kiếm mù:</b> chỉ dùng cấu trúc, không dùng thông tin về đích. DFS = ngăn xếp, BFS = hàng đợi, UCS = hàng đợi ưu tiên theo g, IDS = lặp DFS với giới hạn sâu tăng dần.</li>
+            <li><b>Tìm kiếm có kinh nghiệm:</b> dùng hàm <b>h(n)</b> ước lượng chi phí tới đích. Greedy xếp theo h; A* xếp theo <b>f = g + h</b>.</li>
+            <li><b>h</b> gọi là <b>admissible</b> nếu không ước lượng quá (h ≤ chi phí thật). Ở trang này h = khoảng cách thẳng tới đích, và mọi cạnh có chi phí ≥ khoảng cách hình học nên h admissible (và consistent) → A* tối ưu.</li>
+            <li><b>UCS</b> và <b>A*</b> (với h admissible) luôn trả về đường đi chi phí nhỏ nhất. Greedy thì không.</li>
+          </ul>
+          <table class="cx">
+            <tr><th>Thuật toán</th><th>Đầy đủ</th><th>Tối ưu</th><th>Thời gian</th><th>Bộ nhớ</th></tr>
+            <tr><td>DFS</td><td>Không</td><td>Không</td><td>O(b<sup>m</sup>)</td><td>O(bm)</td></tr>
+            <tr><td>BFS</td><td>Có</td><td>Có* (chi phí bằng nhau)</td><td>O(b<sup>d</sup>)</td><td>O(b<sup>d</sup>)</td></tr>
+            <tr><td>UCS</td><td>Có</td><td>Có</td><td>O(b<sup>1+C*/ε</sup>)</td><td>O(b<sup>1+C*/ε</sup>)</td></tr>
+            <tr><td>IDS</td><td>Có</td><td>Có* (chi phí bằng nhau)</td><td>O(b<sup>d</sup>)</td><td>O(bd)</td></tr>
+            <tr><td>Greedy</td><td>Không</td><td>Không</td><td>O(b<sup>m</sup>)</td><td>O(b<sup>m</sup>)</td></tr>
+            <tr><td>A*</td><td>Có</td><td>Có** (h admissible)</td><td>lũy thừa</td><td>lũy thừa</td></tr>
+          </table>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRACTICE VIEW ===== -->
+  <section id="practiceView" hidden>
+    <div class="practicebar">
+      <button id="qNew" class="primary">Câu khác</button>
+      <div id="qScore" class="qscore-compat qscore"></div>
+    </div>
+    <div class="qwrap">
+      <div class="canvasWrap" id="graphWrapQ"><svg id="graphQ"></svg></div>
+      <div class="qcard">
+        <div id="qText" class="qtext">Đang tạo câu hỏi…</div>
+        <div id="qHint" class="hint"></div>
+        <div id="qOpts" class="qopts"></div>
+        <div id="qFeedback" class="qfeedback" hidden></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = id => document.getElementById(id);
+
+  const svg = $("graph");
+  const svgQ = $("graphQ");
+  const explainEl = $("explain");
+  const chipsEl = $("chips");
+  const frontierListEl = $("frontierList");
+  const frontierRuleEl = $("frontierRule");
+  const exploredListEl = $("exploredList");
+  const codeEl = $("code");
+  const codeNameEl = $("codeName");
+  const counterEl = $("stepCounter");
+  const btnPrev = $("btnPrev"), btnNext = $("btnNext"), btnAuto = $("btnAuto"), btnReset = $("btnReset");
+  const speedInput = $("speed");
+  const stepView = $("stepView"), practiceView = $("practiceView");
+
+  // ---------- helpers ----------
+  function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+  function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+  function fmt1(x){ if(x===undefined||x===null) return "?"; return String(Math.round(x*10)/10); }
+  function num(id){ return parseInt(String(id).slice(1), 10); }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function el(name, attrs){
+    const x = document.createElementNS(NS, name);
+    if(attrs) Object.entries(attrs).forEach(([k,v]) => x.setAttribute(k,v));
+    return x;
+  }
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  // ---------- code (pseudo) ----------
+  const CODE = {
+    DFS: [
+      "function DFS(start, goal) {",
+      "  frontier = Stack(); frontier.push(start);      // ngăn xếp LIFO",
+      "  explored = Set();",
+      "  while (frontier not empty) {",
+      "    node = frontier.pop();                       // lấy ở ĐỈNH ngăn xếp",
+      "    if (node == goal) return path(node);",
+      "    if (node in explored) continue;",
+      "    explored.add(node);",
+      "    for (child of neighbors(node)) {",
+      "      if (child in explored or child in frontier) continue;",
+      "      parent[child] = node;",
+      "      frontier.push(child);                      // đẩy vào ĐỈNH ngăn xếp",
+      "    }",
+      "  }",
+      "  return failure;",
+      "}"
+    ],
+    BFS: [
+      "function BFS(start, goal) {",
+      "  frontier = Queue(); frontier.push(start);      // hàng đợi FIFO",
+      "  explored = Set();",
+      "  while (frontier not empty) {",
+      "    node = frontier.pop();                       // lấy ở ĐẦU hàng đợi",
+      "    if (node == goal) return path(node);",
+      "    explored.add(node);",
+      "    for (child of neighbors(node)) {",
+      "      if (child in explored or child in frontier) continue;",
+      "      parent[child] = node;",
+      "      frontier.push(child);                      // xếp vào CUỐI hàng đợi",
+      "    }",
+      "  }",
+      "  return failure;",
+      "}"
+    ],
+    UCS: [
+      "function UCS(start, goal) {",
+      "  g[start] = 0;",
+      "  frontier = PriorityQueue(); frontier.push(start);  // ưu tiên g nhỏ",
+      "  explored = Set();",
+      "  while (frontier not empty) {",
+      "    node = frontier.popMin();                       // g nhỏ nhất",
+      "    if (node in explored) continue;                 // bản ghi cũ",
+      "    if (node == goal) return path(node);",
+      "    explored.add(node);",
+      "    for (child of neighbors(node)) {",
+      "      newG = g[node] + cost(node, child);",
+      "      if (child in explored) continue;",
+      "      if (child not in frontier or newG < g[child]) {",
+      "        g[child] = newG;",
+      "        parent[child] = node;",
+      "        frontier.push(child, newG);                 // cập nhật hàng đợi",
+      "      }",
+      "    }",
+      "  }",
+      "  return failure;",
+      "}"
+    ],
+    IDS: [
+      "function IDS(start, goal) {",
+      "  for (limit = 0; ; limit++) {                  // thử độ sâu tăng dần",
+      "    explored = Set();                            // mỗi vòng: DFS giới hạn",
+      "    frontier = Stack(); frontier.push({node:start, depth:0});",
+      "    while (frontier not empty) {",
+      "      item = frontier.pop();",
+      "      if (item.node == goal) return path(item.node);",
+      "      if (item.depth == limit) continue;         // chạm giới hạn → dừng nhánh",
+      "      if (item.node in explored) continue;",
+      "      explored.add(item.node);",
+      "      for (child of neighbors(item.node)) {",
+      "        parent[child] = item.node;",
+      "        frontier.push({node:child, depth:item.depth+1});",
+      "      }",
+      "    }",
+      "    // không thấy trong giới hạn này → tăng limit rồi thử lại",
+      "  }",
+      "}"
+    ],
+    Greedy: [
+      "function Greedy(start, goal) {",
+      "  frontier = PriorityQueue(); explored = Set();  // ưu tiên h nhỏ",
+      "  frontier.push(start);",
+      "  while (frontier not empty) {",
+      "    node = frontier.popMin();                     // h nhỏ nhất",
+      "    if (node == goal) return path(node);",
+      "    explored.add(node);",
+      "    for (child of neighbors(node)) {",
+      "      if (child in explored or child in frontier) continue;",
+      "      parent[child] = node;",
+      "      frontier.push(child, h(child));             // ưu tiên h(child)",
+      "    }",
+      "  }",
+      "  return failure;",
+      "}"
+    ],
+    "A*": [
+      "function AStar(start, goal) {",
+      "  g[start] = 0;",
+      "  frontier = PriorityQueue(); frontier.push(start);   // ưu tiên f = g + h",
+      "  explored = Set();",
+      "  while (frontier not empty) {",
+      "    node = frontier.popMin();                        // f nhỏ nhất",
+      "    if (node in explored) continue;",
+      "    if (node == goal) return path(node);",
+      "    explored.add(node);",
+      "    for (child of neighbors(node)) {",
+      "      newG = g[node] + cost(node, child);",
+      "      if (child in explored or newG >= g[child]) continue;",
+      "      g[child] = newG;",
+      "      parent[child] = node;",
+      "      frontier.push(child, newG + h(child));        // ưu tiên f",
+      "    }",
+      "  }",
+      "  return failure;",
+      "}"
+    ]
+  };
+
+  const LINE = {
+    DFS:    {INIT:2, POP:5, GOAL:6, SKIPDUP:7, EXPAND:8, NEIGH:9, SKIP:10, PARENT:11, PUSH:12, FAIL:15},
+    BFS:    {INIT:2, POP:5, GOAL:6, EXPAND:7, NEIGH:8, SKIP:9, PARENT:10, PUSH:11, FAIL:14},
+    UCS:    {INIT:3, POP:6, STALE:7, GOAL:8, EXPAND:9, NEIGH:10, RELAX:11, SKIP:12, UPDATE:14, PARENT:15, PUSH:16, FAIL:20},
+    IDS:    {ROUND:2, RESET:3, INIT:4, POP:6, GOAL:7, CUT:8, SKIP:9, EXPAND:10, NEIGH:11, PARENT:12, PUSH:13, ROUNDFAIL:16},
+    Greedy: {INIT:2, POP:5, GOAL:6, EXPAND:7, NEIGH:8, SKIP:9, PARENT:10, PUSH:11, FAIL:14},
+    "A*":   {INIT:3, POP:6, STALE:7, GOAL:8, EXPAND:9, NEIGH:10, RELAX:11, SKIP:12, UPDATE:13, PARENT:14, PUSH:15, FAIL:18}
+  };
+
+  const KIND_LABEL = {
+    INIT:"Khởi tạo", POP:"Lấy khỏi frontier", GOAL_TEST:"Kiểm tra đích", EXPAND:"Mở rộng nút",
+    NEIGH:"Xét nút kề", RELAX:"Tính chi phí g mới", SKIP:"Bỏ qua", PUSH:"Thêm/cập nhật frontier",
+    UPDATE:"Cập nhật", STALE:"Bản ghi cũ", CUT:"Chạm giới hạn sâu", ROUND:"Vòng lặp mới",
+    ROUNDFAIL:"Hết vòng", FOUND:"TÌM THẤY ĐÍCH", FAIL:"THẤT BẠI"
+  };
+
+  const ALGO_NAME = {DFS:"DFS", BFS:"BFS", UCS:"UCS", IDS:"IDS", Greedy:"Greedy Best-First", "A*":"A*"};
+
+  // ---------- graph generation ----------
+  function genGraph(seed){
+    const rnd = mulberry32(seed);
+    const cols = 4, rows = 3;
+    const nodes = [];
+    let k = 0;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        k++;
+        nodes.push({
+          id: "n"+k, label: "n"+k,
+          x: 82 + c*182 + (rnd()-0.5)*74,
+          y: 84 + r*152 + (rnd()-0.5)*58
+        });
+      }
+    }
+    const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    const ekey = (a,b) => a < b ? a+"|"+b : b+"|"+a;
+
+    let start = nodes[0], goal = nodes[0], minS = Infinity, maxS = -Infinity;
+    nodes.forEach(n=>{ const s = n.x + n.y; if(s<minS){minS=s;start=n;} if(s>maxS){maxS=s;goal=n;} });
+
+    const edges = [];
+    const have = new Set();
+    function addEdge(a,b){
+      const key = ekey(a,b);
+      if(have.has(key)) return;
+      have.add(key);
+      const d = dist(byId.get(a), byId.get(b));
+      const cost = Math.max(1, Math.round(d * (1.15 + rnd()*0.9)));
+      edges.push({a, b, cost});
+    }
+
+    // Prim MST (đảm bảo liên thông)
+    const inTree = new Set([start.id]);
+    while(inTree.size < nodes.length){
+      let best = null;
+      for(const n of nodes){
+        if(!inTree.has(n.id)) continue;
+        for(const m of nodes){
+          if(inTree.has(m.id)) continue;
+          const d = dist(n,m);
+          if(!best || d < best.d) best = {a:n.id, b:m.id, d};
+        }
+      }
+      inTree.add(best.b);
+      addEdge(best.a, best.b);
+    }
+    // cạnh phụ tạo chu trình
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const A = nodes[i], B = nodes[j];
+        if(dist(A,B) < 250 && !have.has(ekey(A.id,B.id)) && rnd() < 0.55) addEdge(A.id, B.id);
+      }
+    }
+
+    const adj = {};
+    nodes.forEach(n => adj[n.id] = []);
+    edges.forEach(e=>{
+      adj[e.a].push({id:e.b, cost:e.cost});
+      adj[e.b].push({id:e.a, cost:e.cost});
+    });
+    Object.values(adj).forEach(list => list.sort((p,q) => num(p.id) - num(q.id)));
+
+    const h = {}, pos = {};
+    nodes.forEach(n => { h[n.id] = dist(n, goal); pos[n.id] = n; });
+    const costMap = {};
+    edges.forEach(e => costMap[ekey(e.a,e.b)] = e.cost);
+
+    return {
+      nodes, edges, adj, h, pos,
+      start: start.id, goal: goal.id,
+      costOf: (a,b) => costMap[ekey(a,b)] || 0
+    };
+  }
+
+  function pathCost(path){
+    let s = 0;
+    for(let i=0;i+1<path.length;i++) s += graph.costOf(path[i], path[i+1]);
+    return s;
+  }
+
+  // ---------- trace engine ----------
+  function buildSteps(algo){
+    const G = graph;
+    const steps = [];
+    const frontier = [];
+    const explored = new Set();
+    const g = {}, parent = {}, depth = {};
+    let limitInfo = null;
+
+    const pathTo = (n) => {
+      const p = []; const seen = new Set();
+      let c = n;
+      while(c != null && !seen.has(c)){ seen.add(c); p.unshift(c); c = parent[c]; }
+      return p;
+    };
+    const snapFrontier = () => frontier.map(f => ({id:f.id, key:f.key, depth:f.depth}));
+    const emit = (kind, line, nodeId, current, text, opts) => {
+      const s = {
+        i: steps.length, kind, line, nodeId, current, text,
+        frontier: snapFrontier(),
+        explored: [...explored],
+        g: Object.assign({}, g),
+        depth: Object.assign({}, depth),
+        path: current ? pathTo(current) : [],
+        limit: limitInfo
+      };
+      if(opts) Object.assign(s, opts);
+      steps.push(s);
+      return s;
+    };
+    const nbrs = id => G.adj[id];
+
+    if(algo === "BFS"){
+      const L = LINE.BFS;
+      frontier.push({id:G.start, key:0, depth:0});
+      g[G.start] = 0; depth[G.start] = 0; parent[G.start] = null;
+      emit("INIT", L.INIT, null, [G.start], `Dòng ${L.INIT}: khởi tạo hàng đợi (FIFO), đưa ${G.start} vào. explored = ∅.`);
+      while(frontier.length){
+        const before = snapFrontier();
+        const cur = frontier.shift();
+        emit("POP", L.POP, cur.id, null, `Dòng ${L.POP}: lấy ${cur.id} ở ĐẦU hàng đợi. (FIFO — vào trước ra trước.)`, {poppedFrom:before});
+        if(cur.id === G.goal){
+          const p = pathTo(G.goal);
+          emit("FOUND", L.GOAL, G.goal, G.goal, `Dòng ${L.GOAL}: ${cur.id} là đích → dựng lại đường đi. Tổng chi phí = ${pathCost(p)}.`, {found:true, foundPath:p, totalCost:pathCost(p)});
+          return steps;
+        }
+        explored.add(cur.id);
+        emit("EXPAND", L.EXPAND, cur.id, cur.id, `Dòng ${L.EXPAND}: đánh dấu ${cur.id} đã xét (explored).`);
+        for(const nb of nbrs(cur.id)){
+          if(explored.has(nb.id) || frontier.some(x => x.id === nb.id)){
+            emit("SKIP", L.SKIP, nb.id, cur.id, `Dòng ${L.SKIP}: ${nb.id} đã nằm trong explored hoặc frontier → bỏ qua.`);
+            continue;
+          }
+          parent[nb.id] = cur.id; depth[nb.id] = cur.depth + 1; g[nb.id] = g[cur.id] + nb.cost;
+          frontier.push({id:nb.id, key:depth[nb.id], depth:depth[nb.id]});
+          emit("PUSH", L.PUSH, nb.id, cur.id, `Dòng ${L.PUSH}: xếp ${nb.id} vào CUỐI hàng đợi (độ sâu ${depth[nb.id]}).`);
+        }
+      }
+      emit("FAIL", L.FAIL, null, null, `Dòng ${L.FAIL}: frontier rỗng → không có đường đi tới đích.`);
+      return steps;
+    }
+
+    if(algo === "DFS"){
+      const L = LINE.DFS;
+      frontier.push({id:G.start, key:0, depth:0});
+      depth[G.start] = 0; parent[G.start] = null; g[G.start] = 0;
+      emit("INIT", L.INIT, null, [G.start], `Dòng ${L.INIT}: khởi tạo ngăn xếp (LIFO), đẩy ${G.start}. explored = ∅.`);
+      while(frontier.length){
+        const before = snapFrontier();
+        const cur = frontier.pop();
+        emit("POP", L.POP, cur.id, null, `Dòng ${L.POP}: lấy ${cur.id} ở ĐỈNH ngăn xếp (nút vào sau cùng).`, {poppedFrom:before});
+        if(cur.id === G.goal){
+          const p = pathTo(G.goal);
+          emit("FOUND", L.GOAL, G.goal, G.goal, `Dòng ${L.GOAL}: ${cur.id} là đích → dựng lại đường đi. Tổng chi phí = ${pathCost(p)}.`, {found:true, foundPath:p, totalCost:pathCost(p)});
+          return steps;
+        }
+        if(explored.has(cur.id)){
+          emit("SKIP", L.SKIPDUP, cur.id, null, `Dòng ${L.SKIPDUP}: ${cur.id} đã explored → bỏ qua.`);
+          continue;
+        }
+        explored.add(cur.id);
+        emit("EXPAND", L.EXPAND, cur.id, cur.id, `Dòng ${L.EXPAND}: đánh dấu ${cur.id} đã xét.`);
+        for(const nb of nbrs(cur.id)){
+          if(explored.has(nb.id) || frontier.some(x => x.id === nb.id)){
+            emit("SKIP", L.SKIP, nb.id, cur.id, `Dòng ${L.SKIP}: ${nb.id} đã có trong explored/frontier → bỏ qua.`);
+            continue;
+          }
+          parent[nb.id] = cur.id; depth[nb.id] = cur.depth + 1; g[nb.id] = g[cur.id] + nb.cost;
+          frontier.push({id:nb.id, key:depth[nb.id], depth:depth[nb.id]});
+          emit("PUSH", L.PUSH, nb.id, cur.id, `Dòng ${L.PUSH}: đẩy ${nb.id} vào ĐỈNH ngăn xếp (độ sâu ${depth[nb.id]}).`);
+        }
+      }
+      emit("FAIL", L.FAIL, null, null, `Dòng ${L.FAIL}: frontier rỗng → không có đường đi tới đích.`);
+      return steps;
+    }
+
+    if(algo === "UCS" || algo === "A*"){
+      const isA = algo === "A*";
+      const L = isA ? LINE["A*"] : LINE.UCS;
+      g[G.start] = 0; parent[G.start] = null;
+      frontier.push({id:G.start, key:isA ? G.h[G.start] : 0, depth:0});
+      emit("INIT", L.INIT, null, [G.start],
+        `Dòng ${L.INIT}: khởi tạo hàng đợi ưu tiên theo ${isA ? "f = g + h" : "g (chi phí)"} và thêm ${G.start}.`);
+      while(frontier.length){
+        frontier.sort((p,q) => p.key - q.key || num(p.id) - num(q.id));
+        const before = snapFrontier();
+        const cur = frontier.shift();
+        const ck = isA ? fmt1(g[cur.id] + G.h[cur.id]) : fmt1(g[cur.id]);
+        emit("POP", L.POP, cur.id, null, `Dòng ${L.POP}: lấy ${cur.id} có ${isA ? "f" : "g"} nhỏ nhất (${ck}).`, {poppedFrom:before});
+        if(explored.has(cur.id)){
+          emit("STALE", L.STALE, cur.id, null, `Dòng ${L.STALE}: ${cur.id} đã explored → đây là bản ghi cũ, bỏ qua.`);
+          continue;
+        }
+        if(cur.id === G.goal){
+          const p = pathTo(G.goal);
+          emit("FOUND", L.GOAL, G.goal, G.goal, `Dòng ${L.GOAL}: ${cur.id} là đích → đường đi tối ưu. Tổng chi phí = ${pathCost(p)}.`, {found:true, foundPath:p, totalCost:pathCost(p)});
+          return steps;
+        }
+        explored.add(cur.id);
+        emit("EXPAND", L.EXPAND, cur.id, cur.id, `Dòng ${L.EXPAND}: mở rộng ${cur.id}, đánh dấu explored.`);
+        for(const nb of nbrs(cur.id)){
+          const newG = g[cur.id] + nb.cost;
+          emit("RELAX", L.RELAX, nb.id, cur.id, `Dòng ${L.RELAX}: với ${nb.id}: newG = g(${cur.id}) + cost = ${fmt1(g[cur.id])} + ${nb.cost} = ${fmt1(newG)}.`);
+          if(explored.has(nb.id)){
+            emit("SKIP", L.SKIP, nb.id, cur.id, `Dòng ${L.SKIP}: ${nb.id} đã explored → bỏ qua.`);
+            continue;
+          }
+          const better = (g[nb.id] === undefined) || (isA ? newG < g[nb.id] : newG < g[nb.id]);
+          if(better){
+            g[nb.id] = newG; parent[nb.id] = cur.id;
+            const key = isA ? newG + G.h[nb.id] : newG;
+            frontier.push({id:nb.id, key, depth:0});
+            emit("PUSH", L.PUSH, nb.id, cur.id,
+              `Dòng ${L.PUSH}: cập nhật ${nb.id}: g = ${fmt1(newG)}${isA ? `, f = g + h = ${fmt1(newG)} + ${fmt1(G.h[nb.id])} = ${fmt1(key)}` : ""} → thêm vào hàng đợi ưu tiên.`);
+          } else {
+            emit("SKIP", L.SKIP, nb.id, cur.id, `Dòng ${L.SKIP}: ${nb.id} đã có g = ${fmt1(g[nb.id])} tốt hơn hoặc bằng newG = ${fmt1(newG)} → giữ nguyên.`);
+          }
+        }
+      }
+      emit("FAIL", L.FAIL, null, null, `Dòng ${L.FAIL}: frontier rỗng → không có đường đi tới đích.`);
+      return steps;
+    }
+
+    if(algo === "Greedy"){
+      const L = LINE.Greedy;
+      frontier.push({id:G.start, key:G.h[G.start], depth:0});
+      parent[G.start] = null; g[G.start] = 0; depth[G.start] = 0;
+      emit("INIT", L.INIT, null, [G.start], `Dòng ${L.INIT}: khởi tạo hàng đợi ưu tiên theo h(n) và thêm ${G.start} (h = ${fmt1(G.h[G.start])}).`);
+      while(frontier.length){
+        frontier.sort((p,q) => p.key - q.key || num(p.id) - num(q.id));
+        const before = snapFrontier();
+        const cur = frontier.shift();
+        emit("POP", L.POP, cur.id, null, `Dòng ${L.POP}: lấy ${cur.id} có h nhỏ nhất (${fmt1(G.h[cur.id])}) — "có vẻ gần đích nhất".`, {poppedFrom:before});
+        if(cur.id === G.goal){
+          const p = pathTo(G.goal);
+          emit("FOUND", L.GOAL, G.goal, G.goal, `Dòng ${L.GOAL}: ${cur.id} là đích. Đường đi này KHÔNG đảm bảo tối ưu. Chi phí = ${pathCost(p)}.`, {found:true, foundPath:p, totalCost:pathCost(p)});
+          return steps;
+        }
+        explored.add(cur.id);
+        emit("EXPAND", L.EXPAND, cur.id, cur.id, `Dòng ${L.EXPAND}: mở rộng ${cur.id} (đánh dấu explored).`);
+        for(const nb of nbrs(cur.id)){
+          if(explored.has(nb.id) || frontier.some(x => x.id === nb.id)){
+            emit("SKIP", L.SKIP, nb.id, cur.id, `Dòng ${L.SKIP}: ${nb.id} đã có trong explored/frontier → bỏ qua.`);
+            continue;
+          }
+          parent[nb.id] = cur.id; depth[nb.id] = cur.depth + 1;
+          frontier.push({id:nb.id, key:G.h[nb.id], depth:depth[nb.id]});
+          emit("PUSH", L.PUSH, nb.id, cur.id, `Dòng ${L.PUSH}: thêm ${nb.id} với ưu tiên h = ${fmt1(G.h[nb.id])}.`);
+        }
+      }
+      emit("FAIL", L.FAIL, null, null, `Dòng ${L.FAIL}: frontier rỗng → không tìm thấy đích.`);
+      return steps;
+    }
+
+    if(algo === "IDS"){
+      const L = LINE.IDS;
+      const maxLimit = G.nodes.length + 2;
+      for(let limit=0; limit<=maxLimit; limit++){
+        limitInfo = limit;
+        frontier.length = 0; explored.clear();
+        emit("ROUND", L.ROUND, null, null, `Dòng ${L.ROUND}: bắt đầu vòng mới với giới hạn độ sâu limit = ${limit}.`);
+        parent[G.start] = null; depth[G.start] = 0;
+        emit("RESET", L.RESET, null, null, `Dòng ${L.RESET}: reset explored; mỗi vòng là một DFS giới hạn độ sâu.`);
+        frontier.push({id:G.start, key:0, depth:0});
+        emit("INIT", L.INIT, null, [G.start], `Dòng ${L.INIT}: đẩy ${G.start} (depth 0) vào ngăn xếp.`);
+        while(frontier.length){
+          const before = snapFrontier();
+          const cur = frontier.pop();
+          emit("POP", L.POP, cur.id, null, `Dòng ${L.POP}: lấy ${cur.id} ở đỉnh ngăn xếp (depth ${cur.depth}).`, {poppedFrom:before});
+          if(cur.id === G.goal){
+            const p = pathTo(G.goal);
+            emit("FOUND", L.GOAL, G.goal, G.goal, `Dòng ${L.GOAL}: tìm thấy ${cur.id} ở vòng limit = ${limit} → đường đi. Chi phí = ${pathCost(p)}.`, {found:true, foundPath:p, totalCost:pathCost(p)});
+            return steps;
+          }
+          if(cur.depth === limit){
+            emit("CUT", L.CUT, cur.id, null, `Dòng ${L.CUT}: ${cur.id} ở depth ${cur.depth} = limit ${limit} → chạm giới hạn, không mở rộng nữa.`);
+            continue;
+          }
+          if(explored.has(cur.id)){
+            emit("SKIP", L.SKIP, cur.id, null, `Dòng ${L.SKIP}: ${cur.id} đã xét trong vòng này → bỏ qua.`);
+            continue;
+          }
+          explored.add(cur.id);
+          emit("EXPAND", L.EXPAND, cur.id, cur.id, `Dòng ${L.EXPAND}: mở rộng ${cur.id} (depth ${cur.depth}).`);
+          for(const nb of nbrs(cur.id)){
+            if(nb.id === G.start || explored.has(nb.id) || frontier.some(x => x.id === nb.id)) continue;
+            parent[nb.id] = cur.id; depth[nb.id] = cur.depth + 1;
+            frontier.push({id:nb.id, key:cur.depth + 1, depth:cur.depth + 1});
+            emit("PUSH", L.PUSH, nb.id, cur.id, `Dòng ${L.PUSH}: đẩy ${nb.id} (depth ${cur.depth + 1}) vào ngăn xếp.`);
+          }
+        }
+        emit("ROUNDFAIL", L.ROUNDFAIL, null, null, `Dòng ${L.ROUNDFAIL}: vòng limit = ${limit} không tìm thấy → tăng limit lên ${limit + 1} và lặp lại.`);
+      }
+      emit("FAIL", L.ROUNDFAIL, null, null, `Đã chạm giới hạn tối đa → không tìm thấy đích.`);
+      return steps;
+    }
+
+    return steps;
+  }
+
+  // ---------- state ----------
+  let graph = null;
+  let steps = [];
+  let cursor = 0;
+  let algo = "A*";
+  let seed = 20260007;
+  let autoTimer = null;
+  let activeTab = "step";
+
+  const FRONTIER_RULE = {
+    DFS: "Ngăn xếp (LIFO) — lấy nút ở ĐỈNH.",
+    IDS: "Ngăn xếp trong mỗi vòng DFS giới hạn độ sâu.",
+    BFS: "Hàng đợi (FIFO) — lấy nút ở ĐẦU.",
+    UCS: "Hàng đợi ưu tiên theo g (nhỏ nhất trước).",
+    Greedy: "Hàng đợi ưu tiên theo h (nhỏ nhất trước).",
+    "A*": "Hàng đợi ưu tiên theo f = g + h (nhỏ nhất trước)."
+  };
+
+  // ---------- render graph ----------
+  function renderGraph(target, st, algorithm){
+    const G = graph;
+    target.innerHTML = "";
+    const VBW = 780, VBH = 470;
+    target.setAttribute("viewBox", `0 0 ${VBW} ${VBH}`);
+    target.setAttribute("width", VBW);
+    target.setAttribute("height", VBH);
+
+    const explored = new Set(st.explored || []);
+    const fmap = new Map((st.frontier || []).map(f => [f.id, f.key]));
+    const pathSet = new Set(st.path || []);
+    const solSet = new Set(st.foundPath || []);
+    const cur = st.current;
+    const order = st.order || {};
+
+    // edges
+    G.edges.forEach(e=>{
+      const A = G.pos[e.a], B = G.pos[e.b];
+      const line = el("line", {x1:A.x, y1:A.y, x2:B.x, y2:B.y, class:"gedge"});
+      const onSol = solSet.has(e.a) && solSet.has(e.b) && isAdjacentOnPath(st.foundPath, e.a, e.b);
+      const onPath = pathSet.has(e.a) && pathSet.has(e.b) && isAdjacentOnPath(st.path, e.a, e.b);
+      if(onSol) line.classList.add("solution");
+      else if(onPath) line.classList.add("onpath");
+      target.appendChild(line);
+      const t = el("text", {x:(A.x+B.x)/2, y:(A.y+B.y)/2 - 4, "text-anchor":"middle", class:"ecost"});
+      t.textContent = e.cost;
+      target.appendChild(t);
+    });
+
+    // nodes
+    G.nodes.forEach(n=>{
+      const cls = ["gnode"];
+      if(fmap.has(n.id)) cls.push("frontier");
+      if(explored.has(n.id)) cls.push("explored");
+      if(pathSet.has(n.id)) cls.push("innode");
+      if(solSet.has(n.id)) cls.push("solution");
+      if(n.id === G.start) cls.push("start");
+      if(n.id === G.goal) cls.push("goal");
+      if(n.id === cur) cls.push("current");
+      const g = el("g", {class:cls.join(" "), transform:`translate(${n.x},${n.y})`});
+      if(n.id === cur) g.appendChild(el("circle", {cx:0, cy:0, r:30, class:"pulse"}));
+      g.appendChild(el("circle", {cx:0, cy:0, r:21, class:"gcircle"}));
+      const idt = el("text", {x:0, y:4, "text-anchor":"middle", class:"gid"});
+      idt.textContent = n.label;
+      g.appendChild(idt);
+
+      const vt = el("text", {x:0, y:36, "text-anchor":"middle", class:"gval"});
+      vt.textContent = valueText(n, st, algorithm);
+      g.appendChild(vt);
+
+      if(order[n.id]){
+        g.appendChild(el("circle", {cx:16, cy:-16, r:9, class:"orderbg"}));
+        const ob = el("text", {x:16, y:-12.5, "text-anchor":"middle", class:"orderbadge"});
+        ob.textContent = order[n.id];
+        g.appendChild(ob);
+      }
+      if(n.id === G.start){
+        const s = el("text", {x:0, y:-30, "text-anchor":"middle", class:"endlabel"});
+        s.textContent = "START"; g.appendChild(s);
+      }
+      if(n.id === G.goal){
+        const s = el("text", {x:0, y:-30, "text-anchor":"middle", class:"endlabel"});
+        s.textContent = "GOAL"; g.appendChild(s);
+      }
+      target.appendChild(g);
+    });
+
+    if(st.totalCost !== undefined && st.found){
+      const t = el("text", {x:14, y:VBH-14, class:"gval"});
+      t.setAttribute("font-size","13");
+      t.textContent = `Đường đi tối ưu/tìm được · tổng chi phí = ${st.totalCost}`;
+      target.appendChild(t);
+    }
+  }
+
+  function isAdjacentOnPath(path, a, b){
+    if(!path) return false;
+    for(let i=0;i+1<path.length;i++){
+      if((path[i]===a && path[i+1]===b) || (path[i]===b && path[i+1]===a)) return true;
+    }
+    return false;
+  }
+
+  function valueText(n, st, algorithm){
+    const h = fmt1(graph.h[n.id]);
+    if(algorithm === "A*" && st.g && st.g[n.id] !== undefined){
+      return `f=${fmt1(st.g[n.id] + graph.h[n.id])} g=${fmt1(st.g[n.id])}`;
+    }
+    if(algorithm === "UCS" && st.g && st.g[n.id] !== undefined) return `g=${fmt1(st.g[n.id])}`;
+    if(algorithm === "Greedy") return `h=${h}`;
+    if((algorithm === "DFS" || algorithm === "BFS" || algorithm === "IDS") && st.depth && st.depth[n.id] !== undefined){
+      return `d=${st.depth[n.id]}`;
+    }
+    return "";
+  }
+
+  // ---------- step view ----------
+  function computeOrder(upto){
+    const o = {};
+    let c = 0;
+    for(let i=0;i<=upto && i<steps.length;i++){
+      if(steps[i].kind === "POP") o[steps[i].nodeId] = ++c;
+    }
+    return o;
+  }
+
+  function renderStep(){
+    if(!graph || !steps.length) return;
+    const s = steps[cursor];
+    const st = {
+      frontier: s.frontier, explored: s.explored, g: s.g, depth: s.depth,
+      path: s.path, current: s.current, foundPath: s.foundPath, totalCost: s.totalCost,
+      found: s.found, order: computeOrder(cursor)
+    };
+    renderGraph(svg, st, algo);
+    renderCode();
+    renderPlayer();
+  }
+
+  function renderCode(){
+    const lines = CODE[algo];
+    const active = steps.length ? steps[cursor].line : 1;
+    codeEl.innerHTML = "";
+    lines.forEach((text, i)=>{
+      const row = document.createElement("div");
+      row.className = "code-line" + ((i+1) === active ? " active" : "");
+      const g = document.createElement("span"); g.className = "gutter"; g.textContent = String(i+1);
+      const c = document.createElement("span"); c.className = "cline"; c.textContent = text;
+      row.appendChild(g); row.appendChild(c);
+      codeEl.appendChild(row);
+    });
+    codeNameEl.textContent = ALGO_NAME[algo];
+    const act = codeEl.querySelector(".code-line.active");
+    if(act && act.scrollIntoView) act.scrollIntoView({block:"nearest"});
+  }
+
+  function addChip(label, value){
+    const c = document.createElement("span"); c.className = "chip";
+    const b = document.createElement("b"); b.textContent = label + ": ";
+    c.appendChild(b); c.appendChild(document.createTextNode(value));
+    chipsEl.appendChild(c);
+  }
+
+  function keyLabel(key){
+    if(algo === "UCS") return "g=" + fmt1(key);
+    if(algo === "Greedy") return "h=" + fmt1(key);
+    if(algo === "A*") return "f=" + fmt1(key);
+    return "d=" + key;
+  }
+
+  function renderPlayer(){
+    const n = steps.length;
+    counterEl.textContent = `Bước ${n ? Math.min(cursor+1, n) : 0} / ${n}`;
+    const s = steps[cursor];
+    explainEl.textContent = s ? s.text : "Không có bước nào.";
+
+    chipsEl.innerHTML = "";
+    if(s){
+      if(s.nodeId) addChip("nút", s.nodeId);
+      addChip("bước", KIND_LABEL[s.kind] || s.kind);
+      addChip("frontier", String((s.frontier||[]).length));
+      addChip("explored", String((s.explored||[]).length));
+      if(s.limit !== null && s.limit !== undefined) addChip("limit", String(s.limit));
+      if(s.current && s.g && s.g[s.current] !== undefined){
+        addChip("g", fmt1(s.g[s.current]));
+        addChip("h", fmt1(graph.h[s.current]));
+        if(algo === "A*") addChip("f", fmt1(s.g[s.current] + graph.h[s.current]));
+      }
+    }
+
+    // frontier list
+    frontierListEl.innerHTML = "";
+    let fr = (s ? s.frontier : []) || [];
+    if(algo === "DFS" || algo === "IDS") fr = fr.slice().reverse();
+    else if(algo === "UCS" || algo === "Greedy" || algo === "A*") fr = fr.slice().sort((a,b)=>a.key-b.key || num(a.id)-num(b.id));
+    fr.forEach(item=>{
+      const span = document.createElement("span"); span.className = "fitem";
+      const id = document.createElement("span"); id.textContent = item.id + (item.id === graph.goal ? "★" : "");
+      const k = document.createElement("span"); k.className = "k"; k.textContent = keyLabel(item.key);
+      span.appendChild(id); span.appendChild(k);
+      frontierListEl.appendChild(span);
+    });
+    if(!fr.length) frontierListEl.innerHTML = '<span style="font-size:12px;color:#999">(rỗng)</span>';
+    frontierRuleEl.textContent = FRONTIER_RULE[algo];
+
+    // explored
+    exploredListEl.innerHTML = "";
+    const ex = (s ? s.explored : []) || [];
+    ex.forEach(id=>{
+      const span = document.createElement("span"); span.className = "eitem"; span.textContent = id;
+      exploredListEl.appendChild(span);
+    });
+    if(!ex.length) exploredListEl.innerHTML = '<span style="font-size:12px;color:#999">(rỗng)</span>';
+
+    btnPrev.disabled = cursor <= 0;
+    btnNext.disabled = n === 0 || cursor >= n - 1;
+    btnReset.disabled = cursor <= 0;
+  }
+
+  function updateStep(){ renderStep(); }
+
+  // ---------- player ----------
+  function intervalFromSpeed(){ return clamp(1500 - (+speedInput.value)*130, 180, 1500); }
+  function tickAuto(){ if(cursor >= steps.length-1){ stopAuto(); return; } cursor++; updateStep(); }
+  function startAuto(){
+    stopAuto();
+    if(cursor >= steps.length-1){ cursor = 0; updateStep(); }
+    autoTimer = setInterval(tickAuto, intervalFromSpeed());
+    btnAuto.textContent = "⏸ Dừng";
+  }
+  function stopAuto(){
+    if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+    btnAuto.textContent = "▶ Tự động";
+  }
+  function goNext(){ stopAuto(); if(cursor < steps.length-1){ cursor++; updateStep(); } }
+  function goPrev(){ stopAuto(); if(cursor > 0){ cursor--; updateStep(); } }
+  function goReset(){ stopAuto(); cursor = 0; updateStep(); }
+
+  function rebuild(){
+    stopAuto();
+    steps = graph ? buildSteps(algo) : [];
+    cursor = 0;
+    renderStep();
+  }
+
+  function newGraph(){
+    graph = genGraph(seed++);
+    rebuild();
+    if(!practiceView.hidden) newQuestion();
+  }
+
+  // ---------- practice ----------
+  let qState = null;
+  let qScore = 0, qTotal = 0;
+
+  const Q_ALGOS = ["DFS", "BFS", "UCS", "IDS", "Greedy", "A*"];
+
+  function newQuestion(){
+    const a = Q_ALGOS[randInt(0, Q_ALGOS.length-1)];
+    const tr = buildSteps(a);
+    const pops = tr.filter(s => s.kind === "POP" && s.poppedFrom && s.poppedFrom.length > 0);
+    if(!pops.length){ return; }
+    const q = pops[randInt(0, pops.length-1)];
+    const correct = q.nodeId;
+    const others = q.poppedFrom.map(f => f.id).filter(id => id !== correct);
+    shuffle(others);
+    let opts = [correct].concat(others.slice(0,3));
+    if(opts.length < 3){
+      const rest = graph.nodes.map(n=>n.id).filter(id => !opts.includes(id));
+      shuffle(rest);
+      opts = opts.concat(rest.slice(0, 3 - opts.length));
+    }
+    shuffle(opts);
+
+    qState = { algo:a, correct, options:opts, step:q, answered:false };
+    renderQuestion();
+    renderGraph(svgQ, {
+      frontier: q.poppedFrom, explored: q.explored, g: q.g, depth: q.depth,
+      path: [], current: null, found: false,
+      order: computeOrder(q.i - 1)
+    }, a);
+  }
+
+  function renderQuestion(){
+    const textEl = $("qText"), hintEl = $("qHint"), optsEl = $("qOpts"), fbEl = $("qFeedback");
+    fbEl.hidden = true; fbEl.textContent = "";
+    if(!qState){ textEl.textContent = "Không tạo được câu hỏi."; return; }
+    const a = qState.algo;
+    textEl.textContent = `Thuật toán ${ALGO_NAME[a]}: với trạng thái frontier/explored như hình, nút nào được MỞ RỘNG tiếp theo?`;
+    hintEl.textContent = FRONTIER_RULE[a] + (a === "A*" ? "  (f = g + h, nhỏ nhất trước)" : "");
+    optsEl.innerHTML = "";
+    qState.options.forEach(id=>{
+      const b = document.createElement("button");
+      b.className = "qopt";
+      b.textContent = id;
+      b.addEventListener("click", ()=>answer(id, b));
+      optsEl.appendChild(b);
+    });
+    $("qScore").textContent = `Điểm: ${qScore}/${qTotal}`;
+  }
+
+  function answer(id, btn){
+    if(!qState || qState.answered) return;
+    qState.answered = true;
+    qTotal++;
+    const ok = (id === qState.correct);
+    if(ok) qScore++;
+    Array.from($("qOpts").children).forEach(b=>{
+      if(b.textContent === qState.correct) b.classList.add("correct");
+      else if(b === btn) b.classList.add("wrong");
+      b.disabled = true;
+    });
+    const fbEl = $("qFeedback");
+    fbEl.hidden = false;
+    fbEl.innerHTML = "";
+    const head = document.createElement("div");
+    head.innerHTML = ok ? "<b style='color:#0f5b34'>Chính xác!</b>" : `<b style='color:#8f2626'>Chưa đúng.</b> Đáp án: <b>${qState.correct}</b>.`;
+    const why = document.createElement("div");
+    why.style.marginTop = "6px";
+    why.textContent = qState.step.text;
+    fbEl.appendChild(head); fbEl.appendChild(why);
+    $("qScore").textContent = `Điểm: ${qScore}/${qTotal}`;
+  }
+
+  // ---------- events ----------
+  document.getElementById("newGraph").addEventListener("click", newGraph);
+
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+      const tab = t.dataset.tab;
+      activeTab = tab;
+      stepView.hidden = tab !== "step";
+      practiceView.hidden = tab !== "practice";
+      if(tab === "step") updateStep();
+      else if(!qState) newQuestion();
+      else { renderQuestion(); renderGraph(svgQ, {frontier:qState.step.poppedFrom, explored:qState.step.explored, g:qState.step.g, depth:qState.step.depth, path:[], current:null, found:false, order:computeOrder(qState.step.i-1)}, qState.algo); }
+    });
+  });
+
+  document.querySelectorAll(".algo-seg button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll(".algo-seg button").forEach(x => x.classList.toggle("active", x === b));
+      algo = b.dataset.algo;
+      rebuild();
+    });
+  });
+
+  btnNext.addEventListener("click", goNext);
+  btnPrev.addEventListener("click", goPrev);
+  btnReset.addEventListener("click", goReset);
+  btnAuto.addEventListener("click", ()=>{ if(autoTimer) stopAuto(); else startAuto(); });
+  speedInput.addEventListener("input", ()=>{ if(autoTimer){ clearInterval(autoTimer); autoTimer = setInterval(tickAuto, intervalFromSpeed()); } });
+  $("qNew").addEventListener("click", newQuestion);
+
+  document.addEventListener("keydown", e=>{
+    if(activeTab !== "step") return;
+    const tag = (e.target && e.target.tagName) || "";
+    if(tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if(e.key === "ArrowRight"){ e.preventDefault(); goNext(); }
+    else if(e.key === "ArrowLeft"){ e.preventDefault(); goPrev(); }
+    else if(e.key === " "){ e.preventDefault(); if(autoTimer) stopAuto(); else startAuto(); }
+  });
+
+  newGraph();
+})();
+</script>
+</body>
+</html>
