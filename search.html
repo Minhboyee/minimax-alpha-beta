@@ -141,6 +141,20 @@
   .qscore{margin-left:auto;font-weight:800;color:#334155}
   .hint{font-size:12px;color:var(--muted);margin-bottom:10px}
 
+  /* path exercise */
+  .pathline{font-size:13px;font-weight:700;color:#334155;line-height:1.8;word-break:break-word;margin:6px 0 10px;min-height:24px}
+  .pathline .pn{display:inline-block;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:6px;padding:1px 7px;margin:2px 1px}
+  .pathline .arr{color:#94a3b8;font-weight:800;margin:0 2px}
+  .costline{font-size:14px;font-weight:800;margin:6px 0;color:#334155}
+  .pfb-ok{color:#0f5b34}
+  .pfb-bad{color:#8f2626}
+  .optlist{font-size:12.5px;color:#334155;margin-top:6px;line-height:1.8}
+  .optlist code{background:#f1f5f9;border-radius:5px;padding:1px 5px;font-size:12px}
+  .gnode.hit .gcircle{stroke:#2563eb;stroke-width:3.6}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#2563eb;margin-right:5px;vertical-align:-1px}
+  #pCost{width:110px;height:36px;border:1px solid #cfcfc9;border-radius:9px;padding:0 9px;background:#fff}
+  .hidden{display:none!important}
+
   @media(max-width:1020px){ .step-layout,.qwrap{grid-template-columns:1fr} }
   @media(max-width:700px){
     header{position:static}
@@ -256,16 +270,50 @@
   <!-- ===== PRACTICE VIEW ===== -->
   <section id="practiceView" hidden>
     <div class="practicebar">
-      <button id="qNew" class="primary">Câu khác</button>
-      <div id="qScore" class="qscore-compat qscore"></div>
+      <div class="algo-seg" id="practiceSeg">
+        <button data-ptab="quiz" class="active">Trắc nghiệm "mở rộng tiếp theo"</button>
+        <button data-ptab="path">Kéo thả tìm đường đi</button>
+      </div>
     </div>
-    <div class="qwrap">
-      <div class="canvasWrap" id="graphWrapQ"><svg id="graphQ"></svg></div>
-      <div class="qcard">
-        <div id="qText" class="qtext">Đang tạo câu hỏi…</div>
-        <div id="qHint" class="hint"></div>
-        <div id="qOpts" class="qopts"></div>
-        <div id="qFeedback" class="qfeedback" hidden></div>
+
+    <div id="quizPane">
+      <div class="practicebar">
+        <button id="qNew" class="primary">Câu khác</button>
+        <div id="qScore" class="qscore"></div>
+      </div>
+      <div class="qwrap">
+        <div class="canvasWrap" id="graphWrapQ"><svg id="graphQ"></svg></div>
+        <div class="qcard">
+          <div id="qText" class="qtext">Đang tạo câu hỏi…</div>
+          <div id="qHint" class="hint"></div>
+          <div id="qOpts" class="qopts"></div>
+          <div id="qFeedback" class="qfeedback" hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pathPane" hidden>
+      <div class="practicebar">
+        <div class="algo-seg" id="costSeg">
+          <button data-cost="unit" class="active">Không cost (mỗi cạnh = 1)</button>
+          <button data-cost="weighted">Có cost (theo trọng số)</button>
+        </div>
+        <button id="pNew" class="primary">Đồ thị mới</button>
+        <button id="pUndo">Lùi 1 bước</button>
+        <button id="pClear">Xoá đường</button>
+        <button id="pAnswer">Xem đáp án</button>
+        <button id="pCheck" class="primary">Kiểm tra</button>
+        <input id="pCost" class="hidden" type="number" placeholder="Tổng cost" />
+        <div id="pScore" class="qscore"></div>
+      </div>
+      <div class="qwrap">
+        <div class="canvasWrap"><svg id="graphD"></svg></div>
+        <div class="qcard">
+          <div class="qtext">Kéo từ <b>START</b> sang các nút kề để tạo đường đi tới <b>GOAL</b>, rồi bấm <b>Kiểm tra</b>.</div>
+          <div id="pPath" class="pathline"></div>
+          <div id="pCostLine" class="costline"></div>
+          <div id="pFeedback" class="qfeedback" hidden></div>
+        </div>
       </div>
     </div>
   </section>
@@ -536,6 +584,105 @@
     return s;
   }
 
+  // ==================================================================
+  //  PATH CHECKER (pure) — dùng cho phần kéo thả
+  // ==================================================================
+  function edgeW(G, a, b, mode){ return mode === "unit" ? 1 : G.costOf(a, b); }
+
+  // đường đi hợp lệ: bắt đầu ở start, các bước phải là cạnh kề, không lặp nút
+  function isSimpleValidPath(G, path){
+    if(!path || path.length < 2) return false;
+    if(path[0] !== G.start) return false;
+    const seen = new Set([path[0]]);
+    for(let i=0;i+1<path.length;i++){
+      if(!G.adj[path[i]].some(e => e.id === path[i+1])) return false;
+      if(seen.has(path[i+1])) return false;
+      seen.add(path[i+1]);
+    }
+    return true;
+  }
+  function pathTotalCost(G, path, mode){
+    let s = 0;
+    for(let i=0;i+1<path.length;i++) s += edgeW(G, path[i], path[i+1], mode);
+    return s;
+  }
+  function dijkstraDist(G, mode){
+    const dist = {};
+    G.nodes.forEach(n => dist[n.id] = Infinity);
+    dist[G.start] = 0;
+    const pq = [[0, G.start]];
+    const done = new Set();
+    while(pq.length){
+      pq.sort((a,b) => a[0] - b[0]);
+      const [d, u] = pq.shift();
+      if(done.has(u)) continue;
+      done.add(u);
+      for(const e of G.adj[u]){
+        const nd = d + edgeW(G, u, e.id, mode);
+        if(nd < dist[e.id]){ dist[e.id] = nd; pq.push([nd, e.id]); }
+      }
+    }
+    return dist;
+  }
+
+  // Liệt kê tối đa `cap` đường đi đơn có tổng cost = cost tối ưu.
+  // Cắt nhánh khi cost vượt tối ưu (mọi cost > 0) → chỉ duyệt phần "rẻ".
+  function enumerateOptimal(G, mode, cap){
+    const dist = dijkstraDist(G, mode);
+    const opt = dist[G.goal];
+    const out = { opt, paths: [], multiple: false, truncated: false, exists: isFinite(opt) };
+    if(!isFinite(opt)) return out;
+    let steps = 0;
+    const dfs = (node, cost, path) => {
+      if(out.paths.length >= cap){ out.truncated = true; return; }
+      if(++steps > 400000){ out.truncated = true; return; }
+      if(node === G.goal){
+        if(Math.abs(cost - opt) < 1e-9) out.paths.push(path.slice());
+        return;
+      }
+      for(const e of G.adj[node]){
+        const w = edgeW(G, node, e.id, mode);
+        if(cost + w > opt + 1e-9) continue;
+        if(path.includes(e.id)) continue;
+        path.push(e.id);
+        dfs(e.id, cost + w, path);
+        path.pop();
+        if(out.paths.length >= cap){ out.truncated = true; return; }
+      }
+    };
+    dfs(G.start, 0, [G.start]);
+    out.multiple = out.paths.length > 1 || out.truncated;
+    return out;
+  }
+
+  // Kết quả chấm một đường đi người dùng vẽ.
+  // unit:     đúng khi đường đi hợp lệ và tới được đích (cost = số cạnh).
+  // weighted: đúng khi hợp lệ, tới đích, cost = tối ưu, VÀ cost người dùng nhập khớp.
+  function evaluatePath(G, path, mode, declaredCost){
+    const r = {
+      valid:false, atGoal:false, cost:null, opt:null, isOptimal:false,
+      multiple:false, optimalPaths:[], truncated:false, correct:false, reason:""
+    };
+    if(!isSimpleValidPath(G, path)){ r.reason = "invalid"; return r; }
+    r.valid = true;
+    r.cost = pathTotalCost(G, path, mode);
+    r.atGoal = path[path.length-1] === G.goal;
+    const info = enumerateOptimal(G, mode, 12);
+    r.opt = info.opt; r.multiple = info.multiple; r.optimalPaths = info.paths; r.truncated = info.truncated;
+    r.isOptimal = r.atGoal && Math.abs(r.cost - r.opt) < 1e-9;
+    if(!r.atGoal){ r.reason = "not-at-goal"; return r; }
+    if(mode === "unit"){
+      r.correct = true;              // chỉ cần tới đích
+      r.reason = "ok-unit";
+      return r;
+    }
+    if(!r.isOptimal){ r.reason = "suboptimal"; return r; }
+    const declaredOk = (declaredCost !== null && declaredCost !== undefined && isFinite(declaredCost) && Math.abs(declaredCost - r.cost) < 1e-9);
+    if(!declaredOk){ r.reason = "cost-mismatch"; return r; }
+    r.correct = true; r.reason = "ok-weighted";
+    return r;
+  }
+
   // ---------- trace engine ----------
   function buildSteps(algo){
     const G = graph;
@@ -775,7 +922,7 @@
   };
 
   // ---------- render graph ----------
-  function renderGraph(target, st, algorithm){
+  function renderGraph(target, st, algorithm, handlers){
     const G = graph;
     target.innerHTML = "";
     const VBW = 780, VBH = 470;
@@ -838,6 +985,12 @@
       if(n.id === G.goal){
         const s = el("text", {x:0, y:-30, "text-anchor":"middle", class:"endlabel"});
         s.textContent = "GOAL"; g.appendChild(s);
+      }
+      if(handlers){
+        g.style.cursor = "pointer";
+        g.addEventListener("pointerdown", e => { e.preventDefault(); if(handlers.down) handlers.down(n.id); });
+        g.addEventListener("pointerup", e => { e.stopPropagation(); if(handlers.up) handlers.up(n.id); });
+        g.addEventListener("pointerenter", () => { if(handlers.enter) handlers.enter(n.id); });
       }
       target.appendChild(g);
     });
@@ -1003,7 +1156,14 @@
   function newGraph(){
     graph = genGraph(seed++);
     rebuild();
-    if(!practiceView.hidden) newQuestion();
+    pathD = [];
+    dragActive = false;
+    qState = null;
+    const fbEl = $("pFeedback"); if(fbEl) fbEl.hidden = true;
+    if(!practiceView.hidden){
+      if(practiceTab === "quiz") newQuestion();
+      else renderPathExercise();
+    }
   }
 
   // ---------- practice ----------
@@ -1079,6 +1239,170 @@
     $("qScore").textContent = `Điểm: ${qScore}/${qTotal}`;
   }
 
+  // ==================================================================
+  //  DRAG & DROP PATH EXERCISE
+  // ==================================================================
+  const svgD = $("graphD");
+  let pathD = [];
+  let pathMode = "unit";
+  let dragActive = false;
+  let pScore = 0, pTotal = 0;
+  let practiceTab = "quiz";
+
+  function isAdj(a,b){ return !!(a && b && graph && graph.adj[a] && graph.adj[a].some(e => e.id === b)); }
+
+  function renderPathExercise(){
+    if(!graph) return;
+    renderGraph(svgD, {
+      frontier: [], explored: [], g: {}, depth: {},
+      path: pathD, current: pathD.length ? pathD[pathD.length-1] : null,
+      found: false, order: {}
+    }, "Greedy", { down: onNodeDown, up: onNodeUp });
+
+    const pl = $("pPath");
+    pl.innerHTML = "";
+    if(!pathD.length){
+      pl.innerHTML = '<span style="color:#999">Chưa có đường đi. Giữ chuột ở nút <b>START</b> rồi kéo sang nút kề.</span>';
+    } else {
+      pathD.forEach((id, i)=>{
+        if(i > 0){ const a = document.createElement("span"); a.className = "arr"; a.textContent = "→"; pl.appendChild(a); }
+        const s = document.createElement("span"); s.className = "pn"; s.textContent = id; pl.appendChild(s);
+      });
+    }
+    const cl = $("pCostLine");
+    if(pathD.length >= 2){
+      const c = pathTotalCost(graph, pathD, pathMode);
+      cl.textContent = pathMode === "unit"
+        ? `Số cạnh đã đi = ${pathD.length - 1} (mỗi cạnh cost = 1)`
+        : `Tổng cost đường đi = ${fmt1(c)}`;
+    } else {
+      cl.textContent = "";
+    }
+  }
+
+  function onNodeDown(id){
+    if(!graph) return;
+    if(pathD.length === 0){
+      if(id === graph.start){ pathD = [id]; dragActive = true; renderPathExercise(); }
+      return;
+    }
+    const last = pathD[pathD.length-1];
+    if(id === last){ dragActive = true; return; }
+    if(isAdj(last, id) && !pathD.includes(id)){ pathD.push(id); dragActive = true; renderPathExercise(); }
+  }
+  function onNodeUp(id){
+    if(!dragActive || !graph) return;
+    dragActive = false;
+    const last = pathD[pathD.length-1];
+    if(id === last) return;
+    if(isAdj(last, id) && !pathD.includes(id)){ pathD.push(id); renderPathExercise(); }
+  }
+
+  function pUndo(){ if(pathD.length){ pathD.pop(); renderPathExercise(); } }
+  function pClearAll(){ pathD = []; dragActive = false; $("pFeedback").hidden = true; renderPathExercise(); }
+
+  function buildPathFeedback(r){
+    const box = document.createElement("div");
+    const head = document.createElement("div");
+    if(!r.valid){ head.innerHTML = "<b class='pfb-bad'>Đường đi không hợp lệ</b> — các bước phải là cạnh kề và không lặp nút."; box.appendChild(head); return box; }
+    if(r.reason === "not-at-goal"){ head.innerHTML = "<b class='pfb-bad'>Chưa tới đích</b> — đường đi phải kết thúc ở GOAL."; box.appendChild(head); return box; }
+    if(r.reason === "suboptimal"){
+      head.innerHTML = `<b class='pfb-bad'>Chưa tối ưu.</b> Cost đường của bạn = <b>${fmt1(r.cost)}</b>, cost tối ưu = <b>${fmt1(r.opt)}</b>.`;
+    } else if(r.reason === "cost-mismatch"){
+      head.innerHTML = `<b class='pfb-bad'>Cost nhập chưa đúng.</b> Đường đi tối ưu rồi, nhưng cost thật = <b>${fmt1(r.cost)}</b>.`;
+    } else if(r.reason === "ok-unit"){
+      head.innerHTML = r.isOptimal
+        ? "<b class='pfb-ok'>Chính xác!</b> Tới đích — và đây cũng là đường ngắn nhất."
+        : "<b class='pfb-ok'>Đạt!</b> Đã tới đích. (Chế độ không cost: chỉ cần tới đích.)";
+    } else {
+      head.innerHTML = "<b class='pfb-ok'>Chính xác!</b> Đường đi tối ưu với cost đúng.";
+    }
+    box.appendChild(head);
+
+    const info = document.createElement("div");
+    info.className = "optlist";
+    const lines = [];
+    lines.push(pathMode === "unit"
+      ? `Độ dài ngắn nhất (số cạnh) = <b>${fmt1(r.opt)}</b>${r.isOptimal ? " — đường của bạn đạt." : ""}.`
+      : `Cost tối ưu = <b>${fmt1(r.opt)}</b>.`);
+    if(r.multiple){
+      lines.push("Có <b>nhiều hơn 1</b> đường đi cùng cost tối ưu — tất cả đều được chấp nhận:");
+      r.optimalPaths.slice(0, 6).forEach(p => lines.push(`<code>${p.join("→")}</code>`));
+      if(r.truncated || r.optimalPaths.length > 6) lines.push("(còn nữa…)");
+    } else if(r.optimalPaths.length === 1){
+      lines.push(`Đường tối ưu: <code>${r.optimalPaths[0].join("→")}</code>`);
+    }
+    info.innerHTML = lines.join("<br>");
+    box.appendChild(info);
+    return box;
+  }
+
+  function pCheck(){
+    const fb = $("pFeedback");
+    fb.hidden = false; fb.innerHTML = "";
+    if(pathD.length < 2){ fb.textContent = "Hãy kéo tạo một đường đi từ START trước đã."; return; }
+    let declared = null;
+    if(pathMode === "weighted"){
+      const raw = $("pCost").value.trim();
+      declared = raw === "" ? null : parseFloat(raw);
+      if(declared !== null && !isFinite(declared)) declared = null;
+    }
+    const r = evaluatePath(graph, pathD, pathMode, declared);
+    pTotal++;
+    if(r.correct) pScore++;
+    $("pScore").textContent = `Điểm: ${pScore}/${pTotal}`;
+    fb.appendChild(buildPathFeedback(r));
+  }
+
+  function pShowAnswer(){
+    const info = enumerateOptimal(graph, pathMode, 12);
+    const fb = $("pFeedback");
+    fb.hidden = false; fb.innerHTML = "";
+    const head = document.createElement("div");
+    if(!info.exists){ head.innerHTML = "<b class='pfb-bad'>Không có đường đi tới đích.</b>"; fb.appendChild(head); return; }
+    head.innerHTML = pathMode === "unit"
+      ? `<b>Đáp án:</b> đường ngắn nhất = <b>${fmt1(info.opt)}</b> cạnh.`
+      : `<b>Đáp án:</b> cost tối ưu = <b>${fmt1(info.opt)}</b>.`;
+    fb.appendChild(head);
+    if(info.paths.length){
+      pathD = info.paths[0].slice();
+      renderPathExercise();
+      if(info.multiple){
+        const d = document.createElement("div"); d.className = "optlist";
+        const rest = info.paths.slice(1, 6).map(p => `<code>${p.join("→")}</code>`).join(" ");
+        d.innerHTML = "Còn các đường cùng cost tối ưu: " + (rest || "(đã liệt kê)") + (info.truncated ? " …" : "");
+        fb.appendChild(d);
+      }
+    }
+  }
+
+  function pSetMode(m){
+    pathMode = m;
+    $("pCost").classList.toggle("hidden", m !== "weighted");
+    $("pFeedback").hidden = true;
+    renderPathExercise();
+  }
+
+  function showPracticePane(p){
+    practiceTab = p;
+    $("quizPane").hidden = p !== "quiz";
+    $("pathPane").hidden = p !== "path";
+    document.querySelectorAll("#practiceSeg button").forEach(b => b.classList.toggle("active", b.dataset.ptab === p));
+    if(p === "quiz"){
+      if(!qState) newQuestion();
+      else {
+        renderQuestion();
+        renderGraph(svgQ, {
+          frontier: qState.step.poppedFrom, explored: qState.step.explored,
+          g: qState.step.g, depth: qState.step.depth,
+          path: [], current: null, found: false, order: computeOrder(qState.step.i - 1)
+        }, qState.algo);
+      }
+    } else {
+      renderPathExercise();
+    }
+  }
+
   // ---------- events ----------
   document.getElementById("newGraph").addEventListener("click", newGraph);
 
@@ -1090,16 +1414,25 @@
       stepView.hidden = tab !== "step";
       practiceView.hidden = tab !== "practice";
       if(tab === "step") updateStep();
-      else if(!qState) newQuestion();
-      else { renderQuestion(); renderGraph(svgQ, {frontier:qState.step.poppedFrom, explored:qState.step.explored, g:qState.step.g, depth:qState.step.depth, path:[], current:null, found:false, order:computeOrder(qState.step.i-1)}, qState.algo); }
+      else showPracticePane(practiceTab);
     });
   });
 
-  document.querySelectorAll(".algo-seg button").forEach(b=>{
+  document.querySelectorAll("#stepView .algo-seg button").forEach(b=>{
     b.addEventListener("click", ()=>{
-      document.querySelectorAll(".algo-seg button").forEach(x => x.classList.toggle("active", x === b));
+      document.querySelectorAll("#stepView .algo-seg button").forEach(x => x.classList.toggle("active", x === b));
       algo = b.dataset.algo;
       rebuild();
+    });
+  });
+
+  document.querySelectorAll("#practiceSeg button").forEach(b=>{
+    b.addEventListener("click", ()=> showPracticePane(b.dataset.ptab));
+  });
+  document.querySelectorAll("#costSeg button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#costSeg button").forEach(x => x.classList.toggle("active", x === b));
+      pSetMode(b.dataset.cost);
     });
   });
 
@@ -1109,6 +1442,11 @@
   btnAuto.addEventListener("click", ()=>{ if(autoTimer) stopAuto(); else startAuto(); });
   speedInput.addEventListener("input", ()=>{ if(autoTimer){ clearInterval(autoTimer); autoTimer = setInterval(tickAuto, intervalFromSpeed()); } });
   $("qNew").addEventListener("click", newQuestion);
+  $("pNew").addEventListener("click", newGraph);
+  $("pUndo").addEventListener("click", pUndo);
+  $("pClear").addEventListener("click", pClearAll);
+  $("pCheck").addEventListener("click", pCheck);
+  $("pAnswer").addEventListener("click", pShowAnswer);
 
   document.addEventListener("keydown", e=>{
     if(activeTab !== "step") return;
