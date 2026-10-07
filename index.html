@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minimax &amp; Alpha–Beta — Ôn tập trực quan</title>
+<style>
+  :root{
+    --bg:#f5f5f2;
+    --panel:#ffffff;
+    --ink:#171717;
+    --panel2:#fbfbfd;
+    --shadow:0 18px 50px rgba(20,20,30,.08);
+    --muted:#777;
+    --line:#cfcfc8;
+    --good:#147a45;
+    --bad:#b83232;
+    --warn:#9a6a12;
+    --max:#2563eb;
+    --min:#dc2626;
+    --leaf:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    padding:18px 22px 12px;
+    border-bottom:1px solid #ddd;
+    background:rgba(255,255,255,.9);
+    position:sticky;
+    top:0;
+    z-index:10;
+    backdrop-filter:blur(10px);
+  }
+  .top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  h1{font-size:20px;margin:0;letter-spacing:-.02em}
+  .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:end;
+    gap:10px;
+  }
+  .control{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  input, select, button{font:inherit}
+  input[type="number"], select{
+    width:88px;height:36px;border:1px solid #cfcfc9;border-radius:9px;padding:0 9px;background:white;color:var(--ink);
+  }
+  button{
+    height:36px;border-radius:9px;border:1px solid #cfcfc9;padding:0 13px;cursor:pointer;background:#fff;color:var(--ink);font-weight:650;
+  }
+  button.primary{background:#171717;color:white;border-color:#171717}
+  button:hover{transform:translateY(-1px)}
+  button:disabled{opacity:.42;cursor:not-allowed;transform:none}
+  .tabs{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .tab{height:34px;border-radius:9px;border:1px solid #cfcfc9;background:#fff;font-weight:700;font-size:13px;padding:0 15px;color:#555}
+  .tab.active{background:#171717;color:#fff;border-color:#171717}
+  .legend{margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend b{color:var(--ink)}
+  main{padding:18px}
+
+  /* ---- practice ---- */
+  .statusbar{
+    max-width:1400px;
+    margin:0 auto 12px;
+    background:var(--panel);
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:11px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    font-size:13px;
+  }
+  #message{font-weight:650}
+  #score{color:var(--muted)}
+  .practicebar{max-width:1400px;margin:0 auto 12px;display:flex;gap:10px;flex-wrap:wrap}
+  .canvasWrap{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(37,99,235,.05), transparent 34%),
+      radial-gradient(circle at 80% 10%, rgba(220,38,38,.045), transparent 34%),
+      linear-gradient(180deg, #fff 0%, var(--panel2) 100%);
+    border:1px solid #dedee5;
+    border-radius:20px;
+    overflow:hidden;
+    min-height:380px;
+    position:relative;
+    box-shadow:var(--shadow);
+  }
+  #practiceWrap{max-width:1400px;margin:auto;padding:14px}
+  #stepCanvasWrap{padding:14px}
+  svg{display:block;width:100%;height:auto}
+  .edge{stroke:#c9cbd3;stroke-width:2.2;transition:.2s;stroke-linecap:round}
+  .edge.faded{opacity:.14}
+  .edge.activeEdge{stroke:#111;stroke-width:3.2}
+  .edge.prunedEdge{opacity:.18;stroke-dasharray:5 4}
+  .node{cursor:pointer;transition:.2s}
+  .node text{pointer-events:none;user-select:none}
+  .node .role{font-size:11px;fill:#fff;font-weight:800}
+  .node .leafValue{font-size:13px;fill:#111;font-weight:800}
+  .node .mmValue{font-size:12px;fill:#333;font-weight:700}
+  .node.predicted .xmark{opacity:1}
+  .node.faded{opacity:.18}
+  .node.correct .shape,.node.correct circle{stroke:var(--good)!important;stroke-width:4!important}
+  .node.wrong .shape,.node.wrong circle{stroke:var(--bad)!important;stroke-width:4!important}
+  .node.missed .shape,.node.missed circle{stroke:var(--warn)!important;stroke-width:4!important;stroke-dasharray:5 4}
+  .leaf circle{fill:var(--leaf);stroke:#31323a;stroke-width:2;filter:drop-shadow(0 4px 7px rgba(0,0,0,.10))}
+  .shape{stroke:#fff;stroke-width:2.2;filter:drop-shadow(0 4px 7px rgba(0,0,0,.16))}
+  .maxNode .shape{fill:var(--max)}
+  .minNode .shape{fill:var(--min)}
+  .xmark{opacity:0;font-size:26px;font-weight:900;fill:var(--bad)}
+  .truthmark{font-size:18px;font-weight:900;fill:var(--warn)}
+  .levelLabel{fill:#8a8a84;font-size:11px;font-weight:700;letter-spacing:.08em}
+
+  .noteText{
+    font-size:12px;font-weight:800;fill:#374151;paint-order:stroke;
+    stroke:#fff;stroke-width:5px;stroke-linejoin:round;cursor:grab;user-select:none;
+  }
+  .noteText.dragging{cursor:grabbing;fill:#111827}
+  .noteEditorFO{overflow:visible}
+  .noteEditor{
+    width:100%;height:30px;border:1.5px solid #818cf8;border-radius:8px;
+    background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(79,70,229,.18);
+    padding:4px 8px;color:#1f2937;
+    font:800 12px Inter, ui-sans-serif, system-ui, sans-serif;outline:none;
+  }
+  #noteMode.active{background:#eef2ff;border-color:#a5b4fc;color:#3730a3}
+  .node.noteTarget .shape,.node.noteTarget circle{
+    filter:drop-shadow(0 0 0 rgba(0,0,0,0)) drop-shadow(0 0 8px rgba(79,70,229,.28));
+  }
+
+  /* ---- step view ---- */
+  .node.inpath .shape,.node.inpath circle{stroke-width:3}
+  .node.current .shape,.node.current circle{stroke:#111;stroke-width:3.6}
+  .node .pulse{fill:none;stroke:#111;stroke-width:2.4;transform-box:fill-box;transform-origin:center;animation:pulse 1.5s ease-out infinite}
+  .node.current .pulse{stroke-width:2.4}
+  @keyframes pulse{0%{opacity:.5;transform:scale(.8)}100%{opacity:0;transform:scale(1.22)}}
+  .node.pruned{opacity:.32}
+  .node.pruned .shape,.node.pruned circle{stroke:#9aa0a6;stroke-dasharray:4 3;stroke-width:2}
+  .cutlabel{font-size:11px;font-weight:800;fill:var(--bad);paint-order:stroke;stroke:#fff;stroke-width:4px}
+  .abLabel{font-size:11px;font-weight:800;fill:#3730a3;paint-order:stroke;stroke:#fff;stroke-width:4px}
+  .node.current .mmValue{fill:#111}
+
+  .step-layout{max-width:1500px;margin:auto;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(380px,.9fr);gap:16px;align-items:start}
+  .sidepanel{background:var(--panel);border:1px solid #ddd;border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+  .algo-seg{display:inline-flex;background:#efeef0;border:1px solid #ddd;border-radius:11px;padding:3px;gap:3px;margin-bottom:12px}
+  .algo-seg button{border:none;background:transparent;height:32px;border-radius:8px;padding:0 12px;font-weight:700;font-size:13px;color:#555}
+  .algo-seg button:hover{transform:none}
+  .algo-seg button.active{background:#fff;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .player{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .player .speed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .counter{margin-left:auto;font-size:12px;font-weight:800;color:#334155}
+  .explain{margin-top:12px;background:#fff;border:1px solid #ddd;border-left:4px solid var(--max);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.55;min-height:70px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700;color:#334155}
+  .stackwrap{margin-top:12px}
+  .stacklabel{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+  .stack{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:26px}
+  .stacknode{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:800}
+  .stacknode.top{background:#3730a3;color:#fff;border-color:#3730a3}
+  .arrow{color:#94a3b8;font-weight:800}
+  .codewrap{margin-top:12px;border:1px solid #1e293b;border-radius:12px;overflow:hidden;background:#0f172a}
+  .codehead{padding:8px 12px;background:#111827;color:#cbd5e1;font-size:12px;font-weight:700;letter-spacing:.02em}
+  .code{margin:0;padding:8px 0;max-height:350px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55}
+  .code-line{display:flex;padding:0 10px 0 0;border-left:3px solid transparent}
+  .code-line.active{background:rgba(96,165,250,.16);border-left-color:#60a5fa}
+  .gutter{width:36px;text-align:right;padding-right:10px;color:#64748b;user-select:none;white-space:pre;flex:0 0 auto}
+  .cline{white-space:pre;color:#e2e8f0}
+  .code-line.active .cline{color:#fff;font-weight:700}
+  .theory{margin-top:12px;background:#fff;border:1px solid #ddd;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.6;color:#333}
+  .theory summary{cursor:pointer;font-weight:800;color:#111}
+  .theory ul{margin:8px 0 0;padding-left:20px}
+  .theory li{margin:3px 0}
+
+  @media(max-width:1000px){
+    .step-layout{grid-template-columns:1fr}
+  }
+  @media(max-width:700px){
+    header{position:static}
+    main{padding:10px}
+    .controls{width:100%}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div>
+      <h1>Minimax &amp; Alpha–Beta — Ôn tập trực quan</h1>
+      <div class="subtitle">MAX = tam giác xanh (tối đa hoá), MIN = tam giác đỏ úp (tối thiểu hoá). Duyệt con trái → phải.</div>
+    </div>
+    <div class="controls">
+      <label class="control">Depth
+        <input id="depth" type="number" min="2" max="7" value="4">
+      </label>
+      <label class="control">Expand factor
+        <input id="branch" type="number" min="2" max="5" value="3">
+      </label>
+      <label class="control">Min branches
+        <input id="minBranch" type="number" min="1" max="5" value="1">
+      </label>
+      <label class="control">Root
+        <select id="rootRole">
+          <option value="MAX">MAX</option>
+          <option value="MIN">MIN</option>
+        </select>
+      </label>
+      <label class="control">Tree ordering
+        <select id="treeMode" style="width:125px">
+          <option value="random">Random</option>
+          <option value="heavy" selected>Prune-heavy</option>
+          <option value="max">Max pruning</option>
+        </select>
+      </label>
+      <button id="newTree" class="primary">Random tree</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="step">Từng bước (giải thích theo code)</button>
+    <button class="tab" data-tab="practice">Luyện tập (đoán chỗ cắt tỉa)</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ STEP VIEW ============ -->
+  <section id="stepView">
+    <div class="step-layout">
+      <div>
+        <div class="canvasWrap" id="stepCanvasWrap">
+          <svg id="treeStep"></svg>
+        </div>
+        <div class="legend">
+          <span><b>Đường đậm</b> = đường đi đệ quy hiện tại</span>
+          <span><b>Viền đen + vòng nhấp nháy</b> = node đang xét</span>
+          <span><b>α, β</b> = ngưỡng hiện tại tại node đang xét</span>
+          <span><b>Nét đứt mờ "cắt"</b> = nhánh đã bị cắt tỉa</span>
+        </div>
+      </div>
+      <div class="sidepanel">
+        <div class="algo-seg" id="algoSeg">
+          <button data-algo="alphabeta" class="active">Alpha–Beta (có cắt)</button>
+          <button data-algo="minimax">Minimax (không cắt)</button>
+        </div>
+        <div class="player">
+          <button id="btnPrev">◀ Trước</button>
+          <button id="btnNext" class="primary">Sau ▶</button>
+          <button id="btnAuto">▶ Tự động</button>
+          <button id="btnReset">↺ Về đầu</button>
+          <label class="speed">Tốc độ <input id="speed" type="range" min="1" max="10" value="5"></label>
+          <div id="stepCounter" class="counter">Bước 0 / 0</div>
+        </div>
+        <div id="explain" class="explain">Bấm <b>Sau ▶</b> để chạy thuật toán từng bước. Mỗi bước ứng với một dòng code được tô sáng.</div>
+        <div id="chips" class="chips"></div>
+        <div class="stackwrap">
+          <div class="stacklabel">Ngăn xếp đệ quy</div>
+          <div id="stack" class="stack"></div>
+        </div>
+        <div class="codewrap">
+          <div class="codehead">Mã giả · <span id="codeName">alpha-beta</span></div>
+          <pre id="code" class="code"></pre>
+        </div>
+        <details class="theory">
+          <summary>Tóm tắt lý thuyết</summary>
+          <p style="margin:8px 0 2px"><b>Minimax</b></p>
+          <ul>
+            <li>MAX (người chơi) chọn nước lớn nhất, MIN (đối thủ) chọn nước nhỏ nhất.</li>
+            <li>Duyệt hết các lá rồi "ngược lên": lá lá giá trị; node MAX = max các con, node MIN = min các con.</li>
+            <li>Kết quả tại gốc = giá trị minimax của nước đi tốt nhất.</li>
+            <li>Nhược điểm: phải xét toàn bộ cây → tốn kém.</li>
+          </ul>
+          <p style="margin:10px 0 2px"><b>Alpha–Beta</b></p>
+          <ul>
+            <li><b>α</b> = giá trị tốt nhất (lớn nhất) mà bên MAX đã chắc chắn đạt được trên đường đi hiện tại. Ban đầu α = −∞.</li>
+            <li><b>β</b> = giá trị tốt nhất (nhỏ nhất) mà bên MIN đã chắc chắn đạt được. Ban đầu β = +∞.</li>
+            <li>Tại node MAX: cập nhật α = max(α, v); nếu <b>α ≥ β</b> thì <b>cắt</b> — các con còn lại không cần xét.</li>
+            <li>Tại node MIN: cập nhật β = min(β, v); nếu <b>β ≤ α</b> thì <b>cắt</b>.</li>
+            <li>Alpha–Beta trả về <b>đúng</b> kết quả như Minimax, chỉ bỏ bớt nhánh chắc chắn không ảnh hưởng kết quả.</li>
+            <li>Duyệt con tốt trước (move ordering) sẽ cắt được càng nhiều.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRACTICE VIEW ============ -->
+  <section id="practiceView" hidden>
+    <div class="statusbar">
+      <div id="message">Mark các node mà bạn nghĩ cả subtree bắt đầu từ đó sẽ bị prune.</div>
+      <div id="score"></div>
+    </div>
+    <div class="practicebar">
+      <button id="noteMode">Note mode: OFF</button>
+      <button id="clearMarks">Clear X</button>
+      <button id="check" class="primary">Check</button>
+    </div>
+    <div class="canvasWrap" id="practiceWrap">
+      <svg id="treePractice"></svg>
+    </div>
+    <div class="legend" style="max-width:1400px;margin:12px auto 0">
+      <span><b>Click node</b> = đặt / bỏ X dự đoán prune</span>
+      <span><b>Note mode</b> = click node để gõ trực tiếp · kéo note để di chuyển · double-click để sửa</span>
+      <span><b>Prune-heavy</b> = ưu tiên move ordering tốt nhưng vẫn có nhiễu</span>
+      <span>Đánh dấu vào <b>root của subtree</b> mà bạn nghĩ sẽ bị cắt</span>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const NS = "http://www.w3.org/2000/svg";
+
+  // ---------- DOM ----------
+  const svgStep = document.getElementById("treeStep");
+  const svgPractice = document.getElementById("treePractice");
+  const depthInput = document.getElementById("depth");
+  const branchInput = document.getElementById("branch");
+  const minBranchInput = document.getElementById("minBranch");
+  const rootRoleInput = document.getElementById("rootRole");
+  const treeModeInput = document.getElementById("treeMode");
+  const message = document.getElementById("message");
+  const score = document.getElementById("score");
+  const explainEl = document.getElementById("explain");
+  const chipsEl = document.getElementById("chips");
+  const stackEl = document.getElementById("stack");
+  const codeEl = document.getElementById("code");
+  const codeNameEl = document.getElementById("codeName");
+  const counterEl = document.getElementById("stepCounter");
+  const btnPrev = document.getElementById("btnPrev");
+  const btnNext = document.getElementById("btnNext");
+  const btnAuto = document.getElementById("btnAuto");
+  const btnReset = document.getElementById("btnReset");
+  const speedInput = document.getElementById("speed");
+  const stepView = document.getElementById("stepView");
+  const practiceView = document.getElementById("practiceView");
+
+  // ---------- shared state ----------
+  let idCounter = 0;
+  let root = null;
+  let nodeMap = new Map();
+  let activeTab = "step";
+
+  // practice state
+  let predicted = new Set();
+  let actualPruneRoots = new Set();
+  let checked = false;
+  let noteMode = false;
+  const notes = new Map();
+  let activeEditor = null;
+  let dragState = null;
+
+  // step state
+  let algo = "alphabeta";
+  let steps = [];
+  let cursor = 0;
+  let autoTimer = null;
+
+  // ---------- utils ----------
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+  function chance(p){ return Math.random() < p; }
+  function fmt(x){
+    if(x === undefined || x === null) return "?";
+    if(x === -Infinity) return "−∞";
+    if(x === Infinity) return "+∞";
+    return String(x);
+  }
+  function el(name, attrs){
+    const x = document.createElementNS(NS, name);
+    if(attrs) Object.entries(attrs).forEach(([k,v]) => x.setAttribute(k,v));
+    return x;
+  }
+  function makeTriangle(up){
+    return up ? "0,-24 22,18 -22,18" : "0,24 22,-18 -22,-18";
+  }
+
+  // ---------- tree model ----------
+  function roleAt(level){
+    const rootRole = rootRoleInput.value;
+    if(level % 2 === 0) return rootRole;
+    return rootRole === "MAX" ? "MIN" : "MAX";
+  }
+
+  function shouldEarlyStop(level, maxDepth){
+    if(level === 0) return false;
+    if(level >= maxDepth) return true;
+    const progress = level / maxDepth;
+    let p = 0.05 + 0.34 * progress;
+    if(level <= 1) p *= 0.35;
+    if(maxDepth - level === 1) p += 0.18;
+    return chance(p);
+  }
+
+  function buildTree(level, maxDepth, minB, maxB){
+    const node = {
+      id: "n" + (++idCounter),
+      level,
+      role: roleAt(level),
+      parent: null,
+      children: [],
+      leafValue: null,
+      minimax: null,
+      x: 0, y: 0
+    };
+    if(level === maxDepth || shouldEarlyStop(level, maxDepth)){
+      node.leafValue = randInt(-20, 20);
+      node.minimax = node.leafValue;
+      return node;
+    }
+    const childCount = randInt(minB, maxB);
+    for(let i=0;i<childCount;i++){
+      const c = buildTree(level+1, maxDepth, minB, maxB);
+      c.parent = node;
+      node.children.push(c);
+    }
+    return node;
+  }
+
+  function treeStats(node){
+    let count = 1;
+    let maxLeafDepth = node.children.length ? 0 : node.level;
+    let leafCount = node.children.length ? 0 : 1;
+    node.children.forEach(c => {
+      const s = treeStats(c);
+      count += s.count;
+      maxLeafDepth = Math.max(maxLeafDepth, s.maxLeafDepth);
+      leafCount += s.leafCount;
+    });
+    return {count, maxLeafDepth, leafCount};
+  }
+
+  function computeMinimax(node){
+    if(node.children.length === 0) return node.leafValue;
+    const vals = node.children.map(computeMinimax);
+    node.minimax = node.role === "MAX" ? Math.max(...vals) : Math.min(...vals);
+    return node.minimax;
+  }
+
+  function applyMoveOrdering(node, mode){
+    if(node.children.length === 0) return;
+    node.children.forEach(c => applyMoveOrdering(c, mode));
+    if(mode === "random") return;
+    node.children.sort((a,b) =>
+      node.role === "MAX" ? b.minimax - a.minimax : a.minimax - b.minimax
+    );
+    if(mode === "heavy" && node.children.length > 1){
+      for(let i=1;i<node.children.length-1;i++){
+        if(chance(0.22)){
+          [node.children[i], node.children[i+1]] = [node.children[i+1], node.children[i]];
+          i++;
+        }
+      }
+      if(chance(0.08)){
+        const j = randInt(1, node.children.length-1);
+        [node.children[0], node.children[j]] = [node.children[j], node.children[0]];
+      }
+    }
+  }
+
+  function countSubtreeNodes(node){
+    let n = 1;
+    node.children.forEach(c => n += countSubtreeNodes(c));
+    return n;
+  }
+
+  function analyzePruning(start){
+    const prunedRoots = [];
+    function walk(node, alpha, beta){
+      if(node.children.length === 0) return node.leafValue;
+      if(node.role === "MAX"){
+        let value = -Infinity;
+        for(let i=0;i<node.children.length;i++){
+          value = Math.max(value, walk(node.children[i], alpha, beta));
+          alpha = Math.max(alpha, value);
+          if(alpha >= beta){
+            for(let j=i+1;j<node.children.length;j++) prunedRoots.push(node.children[j]);
+            break;
+          }
+        }
+        return value;
+      }
+      let value = Infinity;
+      for(let i=0;i<node.children.length;i++){
+        value = Math.min(value, walk(node.children[i], alpha, beta));
+        beta = Math.min(beta, value);
+        if(beta <= alpha){
+          for(let j=i+1;j<node.children.length;j++) prunedRoots.push(node.children[j]);
+          break;
+        }
+      }
+      return value;
+    }
+    walk(start, -Infinity, Infinity);
+    const prunedNodes = prunedRoots.reduce((sum,n) => sum + countSubtreeNodes(n), 0);
+    return {roots:prunedRoots.length, nodes:prunedNodes};
+  }
+
+  // alpha-beta used by the practice checker (records prune roots)
+  function alphaBetaCheck(node, alpha, beta){
+    if(node.children.length === 0) return node.leafValue;
+    if(node.role === "MAX"){
+      let value = -Infinity;
+      for(let i=0;i<node.children.length;i++){
+        value = Math.max(value, alphaBetaCheck(node.children[i], alpha, beta));
+        alpha = Math.max(alpha, value);
+        if(alpha >= beta){
+          for(let j=i+1;j<node.children.length;j++) actualPruneRoots.add(node.children[j].id);
+          break;
+        }
+      }
+      return value;
+    }
+    let value = Infinity;
+    for(let i=0;i<node.children.length;i++){
+      value = Math.min(value, alphaBetaCheck(node.children[i], alpha, beta));
+      beta = Math.min(beta, value);
+      if(beta <= alpha){
+        for(let j=i+1;j<node.children.length;j++) actualPruneRoots.add(node.children[j].id);
+        break;
+      }
+    }
+    return value;
+  }
+
+  function flatten(node, arr){
+    arr = arr || [];
+    arr.push(node);
+    node.children.forEach(c => flatten(c, arr));
+    return arr;
+  }
+  function leaves(node, arr){
+    arr = arr || [];
+    if(node.children.length === 0) arr.push(node);
+    else node.children.forEach(c => leaves(c, arr));
+    return arr;
+  }
+  function subtreeIds(node, set){
+    set = set || new Set();
+    set.add(node.id);
+    node.children.forEach(c => subtreeIds(c, set));
+    return set;
+  }
+
+  function buildVariedTree(depth, minB, maxB, mode){
+    let best = null;
+    let bestScore = -1;
+    const attempts = mode === "random" ? 25 : 14;
+    for(let tries=0; tries<attempts; tries++){
+      idCounter = 0;
+      const candidate = buildTree(0, depth, minB, maxB);
+      const st = treeStats(candidate);
+      if(st.maxLeafDepth < Math.max(2, depth - 1) || st.leafCount < 4 || st.count < 8) continue;
+      computeMinimax(candidate);
+      applyMoveOrdering(candidate, mode);
+      if(mode === "random") return candidate;
+      const pr = analyzePruning(candidate);
+      const sc = pr.nodes / Math.max(1, st.count);
+      if(sc > bestScore){ best = candidate; bestScore = sc; }
+    }
+    if(best) return best;
+    idCounter = 0;
+    const fallback = buildTree(0, depth, minB, maxB);
+    computeMinimax(fallback);
+    applyMoveOrdering(fallback, mode);
+    return fallback;
+  }
+
+  function rebuildNodeMap(){
+    nodeMap = new Map(flatten(root).map(n => [n.id, n]));
+  }
+
+  // ---------- layout ----------
+  function layout(svg){
+    const leafList = leaves(root);
+    const depth = +depthInput.value;
+    const leafCount = leafList.length;
+    const marginX = 42, marginY = 42;
+    const xGap = clamp(Math.floor(1180 / Math.max(leafCount - 1, 1)), 30, 90);
+    const yGap = clamp(Math.floor(560 / Math.max(depth, 1)), 72, 110);
+
+    leafList.forEach((leaf,i)=>{
+      leaf.x = marginX + i*xGap;
+      leaf.y = marginY + leaf.level*yGap;
+    });
+    (function setInternalX(node){
+      node.y = marginY + node.level*yGap;
+      if(node.children.length === 0) return node.x;
+      const xs = node.children.map(setInternalX);
+      node.x = (xs[0] + xs[xs.length-1]) / 2;
+      return node.x;
+    })(root);
+
+    const width = Math.max(880, marginX*2 + Math.max(0, leafCount-1)*xGap + 10);
+    const maxUsedDepth = treeStats(root).maxLeafDepth;
+    const height = Math.max(360, marginY*2 + maxUsedDepth*yGap + 85);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("width", width);
+    svg.setAttribute("height", height);
+  }
+
+  function drawLevelLabels(svg){
+    const depth = +depthInput.value;
+    const yGap = clamp(Math.floor(560 / Math.max(depth,1)), 72, 110);
+    for(let l=0;l<=depth;l++){
+      const t = el("text",{x:12, y:48+l*yGap, class:"levelLabel"});
+      t.textContent = l < depth ? roleAt(l) : "MAX DEPTH";
+      svg.appendChild(t);
+    }
+  }
+
+  // ==================================================================
+  //  PRACTICE VIEW
+  // ==================================================================
+  function hasPredictedAncestor(node){
+    let p = node.parent;
+    while(p){
+      if(predicted.has(p.id)) return true;
+      p = p.parent;
+    }
+    return false;
+  }
+
+  function renderPractice(){
+    const svg = svgPractice;
+    svg.innerHTML = "";
+    if(!root) return;
+    layout(svg);
+    drawLevelLabels(svg);
+    const all = flatten(root);
+
+    all.forEach(node=>{
+      node.children.forEach(child=>{
+        const y1 = node.y + 20;
+        const y2 = child.y - 20;
+        const midY = (y1 + y2) / 2;
+        const line = el("path",{
+          d:`M ${node.x} ${y1} C ${node.x} ${midY}, ${child.x} ${midY}, ${child.x} ${y2}`,
+          class:"edge", fill:"none"
+        });
+        if(hasPredictedAncestor(child) || predicted.has(node.id)) line.classList.add("faded");
+        svg.appendChild(line);
+      });
+    });
+
+    all.forEach(node=>{
+      const classes = ["node"];
+      if(node.children.length === 0) classes.push("leaf");
+      else classes.push(node.role === "MAX" ? "maxNode" : "minNode");
+      if(predicted.has(node.id)) classes.push("predicted");
+      if(hasPredictedAncestor(node)) classes.push("faded");
+      if(checked){
+        const pred = predicted.has(node.id);
+        const truth = actualPruneRoots.has(node.id);
+        if(pred && truth) classes.push("correct");
+        else if(pred && !truth) classes.push("wrong");
+        else if(!pred && truth) classes.push("missed");
+      }
+
+      const g = el("g",{class:classes.join(" "), transform:`translate(${node.x},${node.y})`});
+      g.dataset.id = node.id;
+
+      if(node.children.length === 0){
+        g.appendChild(el("circle",{cx:0, cy:0, r:20}));
+        const value = el("text",{x:0, y:5, "text-anchor":"middle", class:"leafValue"});
+        value.textContent = node.leafValue;
+        g.appendChild(value);
+      } else {
+        g.appendChild(el("polygon",{points: makeTriangle(node.role === "MAX"), class:"shape"}));
+        const role = el("text",{x:0, y:4, "text-anchor":"middle", class:"role"});
+        role.textContent = node.role;
+        g.appendChild(role);
+        if(checked){
+          const mm = el("text",{x:0, y:38, "text-anchor":"middle", class:"mmValue"});
+          mm.textContent = "v=" + node.minimax;
+          g.appendChild(mm);
+        }
+      }
+
+      const xm = el("text",{x:18, y:-16, "text-anchor":"middle", class:"xmark"});
+      xm.textContent = "×";
+      g.appendChild(xm);
+
+      if(checked && actualPruneRoots.has(node.id) && !predicted.has(node.id)){
+        const truth = el("text",{x:-24, y:-16, "text-anchor":"middle", class:"truthmark"});
+        truth.textContent = "!";
+        g.appendChild(truth);
+      }
+
+      if(noteMode) g.classList.add("noteTarget");
+
+      g.addEventListener("click", e=>{
+        e.stopPropagation();
+        if(noteMode){ openNoteEditor(node); return; }
+        if(checked) return;
+        if(node === root) return;
+        if(hasPredictedAncestor(node)) return;
+        const id = node.id;
+        if(predicted.has(id)){
+          predicted.delete(id);
+        } else {
+          const ids = subtreeIds(node);
+          [...predicted].forEach(pid => { if(ids.has(pid)) predicted.delete(pid); });
+          predicted.add(id);
+        }
+        renderPractice();
+      });
+
+      svg.appendChild(g);
+    });
+
+    drawNotes();
+  }
+
+  function svgPointFromEvent(svg, e){
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    return ctm ? pt.matrixTransform(ctm.inverse()) : {x:e.clientX, y:e.clientY};
+  }
+  function findNodeById(id){
+    return nodeMap.get(id);
+  }
+
+  function drawNotes(){
+    flatten(root, []).forEach(node => {
+      const data = notes.get(node.id);
+      if(!data || !data.text || data.text.trim() === "") return;
+      const note = el("text",{
+        x:node.x + data.dx,
+        y:node.y + data.dy,
+        "text-anchor":"middle",
+        class:"noteText"
+      });
+      note.textContent = data.text;
+      note.dataset.nodeId = node.id;
+
+      note.addEventListener("pointerdown", e => {
+        e.stopPropagation();
+        e.preventDefault();
+        const p = svgPointFromEvent(svgPractice, e);
+        dragState = {nodeId:node.id, startX:p.x, startY:p.y, startDx:data.dx, startDy:data.dy, el:note};
+        note.classList.add("dragging");
+        try{ note.setPointerCapture(e.pointerId); }catch(_){}
+      });
+      note.addEventListener("dblclick", e => {
+        e.stopPropagation();
+        openNoteEditor(node);
+      });
+      svgPractice.appendChild(note);
+    });
+  }
+
+  function closeActiveEditor(save){
+    if(!activeEditor) return;
+    const {fo, input, node} = activeEditor;
+    const existing = notes.get(node.id) || {text:"", dx:0, dy:node.children.length===0 ? 38 : 52};
+    if(save){
+      const text = input.value.trim();
+      if(text === "") notes.delete(node.id);
+      else notes.set(node.id, {...existing, text});
+    }
+    if(fo.parentNode) fo.parentNode.removeChild(fo);
+    activeEditor = null;
+    renderPractice();
+  }
+
+  function openNoteEditor(node){
+    if(activeEditor) closeActiveEditor(true);
+    const current = notes.get(node.id) || {text:"", dx:0, dy:node.children.length===0 ? 38 : 52};
+    const centerX = node.x + current.dx;
+    const baselineY = node.y + current.dy;
+    const w = 150, h = 34;
+
+    const fo = el("foreignObject",{
+      x:centerX - w/2, y:baselineY - 23, width:w, height:h, class:"noteEditorFO"
+    });
+    const input = document.createElement("input");
+    input.setAttribute("xmlns","http://www.w3.org/1999/xhtml");
+    input.className = "noteEditor";
+    input.value = current.text;
+    input.placeholder = "v=3, α=2, β=5...";
+    fo.appendChild(input);
+    svgPractice.appendChild(fo);
+    activeEditor = {fo, input, node};
+
+    input.addEventListener("click", e=>e.stopPropagation());
+    input.addEventListener("pointerdown", e=>e.stopPropagation());
+    input.addEventListener("keydown", e=>{
+      if(e.key === "Enter"){ e.preventDefault(); closeActiveEditor(true); }
+      else if(e.key === "Escape"){ e.preventDefault(); closeActiveEditor(false); }
+    });
+    input.addEventListener("blur", ()=>{ if(activeEditor && activeEditor.input === input) closeActiveEditor(true); });
+    requestAnimationFrame(()=>{ input.focus(); input.select(); });
+  }
+
+  svgPractice.addEventListener("pointermove", e => {
+    if(!dragState) return;
+    const data = notes.get(dragState.nodeId);
+    const node = findNodeById(dragState.nodeId);
+    if(!data || !node) return;
+    const p = svgPointFromEvent(svgPractice, e);
+    data.dx = dragState.startDx + (p.x - dragState.startX);
+    data.dy = dragState.startDy + (p.y - dragState.startY);
+    dragState.el.setAttribute("x", node.x + data.dx);
+    dragState.el.setAttribute("y", node.y + data.dy);
+  });
+  function endNoteDrag(){
+    if(!dragState) return;
+    if(dragState.el) dragState.el.classList.remove("dragging");
+    dragState = null;
+  }
+  svgPractice.addEventListener("pointerup", endNoteDrag);
+  svgPractice.addEventListener("pointercancel", endNoteDrag);
+  window.addEventListener("pointerup", endNoteDrag);
+
+  function clearMarks(){
+    if(checked){ checked = false; actualPruneRoots.clear(); }
+    predicted.clear();
+    message.textContent = "Đã xóa dự đoán. Thử lại từ đầu.";
+    const st = treeStats(root);
+    score.textContent = `Nodes = ${st.count} · Leaves = ${st.leafCount}`;
+    renderPractice();
+  }
+
+  function checkAnswer(){
+    actualPruneRoots.clear();
+    alphaBetaCheck(root, -Infinity, Infinity);
+    checked = true;
+
+    const p = predicted, a = actualPruneRoots;
+    let correct = 0;
+    p.forEach(id => { if(a.has(id)) correct++; });
+    const falsePositive = [...p].filter(id => !a.has(id)).length;
+    const missed = [...a].filter(id => !p.has(id)).length;
+
+    if(falsePositive === 0 && missed === 0){
+      message.textContent = "Perfect — bạn xác định đúng toàn bộ cutoff.";
+    } else {
+      message.textContent = `Đúng ${correct}/${a.size} prune roots. Sai ${falsePositive}, bỏ sót ${missed}.`;
+    }
+    const st = treeStats(root);
+    const pr = analyzePruning(root);
+    const rate = Math.round(100 * pr.nodes / Math.max(1, st.count - 1));
+    score.textContent = `Minimax(root) = ${root.minimax} · Prune roots = ${a.size} · Pruned nodes = ${pr.nodes} (~${rate}%)`;
+    renderPractice();
+  }
+
+  // ==================================================================
+  //  STEP-BY-STEP TRACE
+  // ==================================================================
+  const ALPHA_BETA_CODE = [
+    "function alphabeta(node, α, β, maximizing) {",
+    "  if (node.isLeaf) return node.value;",
+    "  let v;",
+    "  if (maximizing) {",
+    "    v = -Infinity;",
+    "    for (let i = 0; i < node.children.length; i++) {",
+    "      const child = node.children[i];",
+    "      v = Math.max(v, alphabeta(child, α, β, false));",
+    "      α = Math.max(α, v);",
+    "      if (α >= β) break;          // β-cutoff",
+    "    }",
+    "    return v;",
+    "  } else {",
+    "    v = +Infinity;",
+    "    for (let i = 0; i < node.children.length; i++) {",
+    "      const child = node.children[i];",
+    "      v = Math.min(v, alphabeta(child, α, β, true));",
+    "      β = Math.min(β, v);",
+    "      if (β <= α) break;          // α-cutoff",
+    "    }",
+    "    return v;",
+    "  }",
+    "}"
+  ];
+
+  const MINIMAX_CODE = [
+    "function minimax(node, maximizing) {",
+    "  if (node.isLeaf) return node.value;",
+    "  let v;",
+    "  if (maximizing) {",
+    "    v = -Infinity;",
+    "    for (const child of node.children) {",
+    "      v = Math.max(v, minimax(child, false));",
+    "    }",
+    "    return v;",
+    "  } else {",
+    "    v = +Infinity;",
+    "    for (const child of node.children) {",
+    "      v = Math.min(v, minimax(child, true));",
+    "    }",
+    "    return v;",
+    "  }",
+    "}"
+  ];
+
+  const KIND_LABEL = {
+    ENTER:"Đi vào node",
+    LEAF_RETURN:"Lá trả về giá trị",
+    INIT_V:"Khởi tạo v",
+    CALL_CHILD:"Gọi đệ quy con",
+    CHILD_RETURN:"Cập nhật v",
+    UPDATE_ALPHA:"Cập nhật α",
+    UPDATE_BETA:"Cập nhật β",
+    CUTOFF:"CẮT TỈA",
+    RETURN:"Trả về"
+  };
+
+  function buildTrace(start, algorithm){
+    const out = [];
+    const path = [];
+    const add = o => { o.i = out.length; out.push(o); };
+    const names = ids => ids.length ? ids.join(", ") : "∅";
+
+    function ab(node, alpha, beta){
+      path.push(node.id);
+      const isMax = node.role === "MAX";
+      add({kind:"ENTER", nodeId:node.id, line:2, alpha, beta, v:null, path:path.slice(),
+        text:`Gọi alphabeta(${node.id}, α=${fmt(alpha)}, β=${fmt(beta)}). Dòng 2: ${node.id} (${node.role}) không phải lá → đi tiếp.`});
+
+      if(node.children.length === 0){
+        add({kind:"LEAF_RETURN", nodeId:node.id, line:2, alpha, beta, v:node.leafValue, path:path.slice(),
+          text:`Dòng 2: ${node.id} là lá → trả về giá trị ${fmt(node.leafValue)}.`});
+        path.pop();
+        return node.leafValue;
+      }
+
+      const initV = isMax ? -Infinity : Infinity;
+      const initLine = isMax ? 5 : 14;
+      add({kind:"INIT_V", nodeId:node.id, line:initLine, alpha, beta, v:initV, path:path.slice(),
+        text:`Dòng ${initLine}: khởi tạo v = ${fmt(initV)} cho node ${node.role} ${node.id}.`});
+
+      let v = initV;
+      for(let i=0;i<node.children.length;i++){
+        const child = node.children[i];
+        const callLine = isMax ? 8 : 17;
+        add({kind:"CALL_CHILD", nodeId:node.id, line:callLine, alpha, beta, v, path:path.slice(),
+          childId:child.id, childIndex:i,
+          text:`Dòng ${callLine}: duyệt con thứ ${i+1} (${child.id}) → gọi đệ quy alphabeta(${child.id}, α=${fmt(alpha)}, β=${fmt(beta)}).`});
+
+        const ret = ab(child, alpha, beta);
+        const prevV = v;
+        v = isMax ? Math.max(v, ret) : Math.min(v, ret);
+        add({kind:"CHILD_RETURN", nodeId:node.id, line:callLine, alpha, beta, v, prevV, path:path.slice(),
+          childId:child.id, childIndex:i, returnedValue:ret,
+          text:`Dòng ${callLine}: ${child.id} trả về ${fmt(ret)}. Vì ${node.id} là ${node.role}, v = ${isMax?"max":"min"}(${fmt(prevV)}, ${fmt(ret)}) = ${fmt(v)}.`});
+
+        if(isMax){
+          const newAlpha = Math.max(alpha, v);
+          if(newAlpha !== alpha){
+            const prevAlpha = alpha;
+            alpha = newAlpha;
+            add({kind:"UPDATE_ALPHA", nodeId:node.id, line:9, alpha, beta, v, prevAlpha, path:path.slice(),
+              text:`Dòng 9: cập nhật α = max(${fmt(prevAlpha)}, ${fmt(v)}) = ${fmt(alpha)}. MAX ${node.id} đã đảm bảo được ≥ ${fmt(alpha)}.`});
+          }
+          if(alpha >= beta){
+            const pruned = node.children.slice(i+1).map(c => c.id);
+            add({kind:"CUTOFF", nodeId:node.id, line:10, alpha, beta, v, prunedIds:pruned, path:path.slice(),
+              text:`Dòng 10: α (${fmt(alpha)}) ≥ β (${fmt(beta)}) → CẮT TỈA. Node MAX ${node.id} chắc chắn ≥ ${fmt(alpha)}, trong khi tổ tiên MIN chỉ chấp nhận giá trị ≤ β = ${fmt(beta)}. Vì ${fmt(alpha)} ≥ ${fmt(beta)} nên MIN sẽ không bao giờ chọn nhánh này → bỏ qua các con còn lại: ${names(pruned)}.`});
+            break;
+          }
+        } else {
+          const newBeta = Math.min(beta, v);
+          if(newBeta !== beta){
+            const prevBeta = beta;
+            beta = newBeta;
+            add({kind:"UPDATE_BETA", nodeId:node.id, line:18, alpha, beta, v, prevBeta, path:path.slice(),
+              text:`Dòng 18: cập nhật β = min(${fmt(prevBeta)}, ${fmt(v)}) = ${fmt(beta)}. MIN ${node.id} đã đảm bảo được ≤ ${fmt(beta)}.`});
+          }
+          if(beta <= alpha){
+            const pruned = node.children.slice(i+1).map(c => c.id);
+            add({kind:"CUTOFF", nodeId:node.id, line:19, alpha, beta, v, prunedIds:pruned, path:path.slice(),
+              text:`Dòng 19: β (${fmt(beta)}) ≤ α (${fmt(alpha)}) → CẮT TỈA. Node MIN ${node.id} chắc chắn ≤ ${fmt(beta)}, trong khi tổ tiên MAX đã có phương án ≥ α = ${fmt(alpha)}. Vì ${fmt(beta)} ≤ ${fmt(alpha)} nên MAX sẽ không chọn nhánh này → bỏ qua các con còn lại: ${names(pruned)}.`});
+            break;
+          }
+        }
+      }
+
+      const retLine = isMax ? 12 : 21;
+      add({kind:"RETURN", nodeId:node.id, line:retLine, alpha, beta, v, path:path.slice(),
+        text:`Dòng ${retLine}: node ${node.id} hoàn tất, trả về v = ${fmt(v)}.`});
+      path.pop();
+      return v;
+    }
+
+    function mm(node){
+      path.push(node.id);
+      const isMax = node.role === "MAX";
+      add({kind:"ENTER", nodeId:node.id, line:2, v:null, path:path.slice(),
+        text:`Gọi minimax(${node.id}). Dòng 2: ${node.id} (${node.role}) không phải lá → đi tiếp.`});
+
+      if(node.children.length === 0){
+        add({kind:"LEAF_RETURN", nodeId:node.id, line:2, v:node.leafValue, path:path.slice(),
+          text:`Dòng 2: ${node.id} là lá → trả về giá trị ${fmt(node.leafValue)}.`});
+        path.pop();
+        return node.leafValue;
+      }
+
+      const initV = isMax ? -Infinity : Infinity;
+      const initLine = isMax ? 5 : 11;
+      add({kind:"INIT_V", nodeId:node.id, line:initLine, v:initV, path:path.slice(),
+        text:`Dòng ${initLine}: khởi tạo v = ${fmt(initV)} cho node ${node.role} ${node.id}.`});
+
+      let v = initV;
+      for(let i=0;i<node.children.length;i++){
+        const child = node.children[i];
+        const line = isMax ? 7 : 13;
+        add({kind:"CALL_CHILD", nodeId:node.id, line, v, path:path.slice(),
+          childId:child.id, childIndex:i,
+          text:`Dòng ${line}: sang con thứ ${i+1} (${child.id}) → gọi minimax(${child.id}).`});
+
+        const ret = mm(child);
+        const prevV = v;
+        v = isMax ? Math.max(v, ret) : Math.min(v, ret);
+        add({kind:"CHILD_RETURN", nodeId:node.id, line, v, prevV, path:path.slice(),
+          childId:child.id, returnedValue:ret,
+          text:`Dòng ${line}: ${child.id} trả về ${fmt(ret)}. Vì ${node.id} là ${node.role}, v = ${isMax?"max":"min"}(${fmt(prevV)}, ${fmt(ret)}) = ${fmt(v)}.`});
+      }
+
+      const retLine = isMax ? 9 : 15;
+      add({kind:"RETURN", nodeId:node.id, line:retLine, v, path:path.slice(),
+        text:`Dòng ${retLine}: node ${node.id} hoàn tất, trả về v = ${fmt(v)}.`});
+      path.pop();
+      return v;
+    }
+
+    if(algorithm === "alphabeta") ab(start, -Infinity, Infinity);
+    else mm(start);
+    return out;
+  }
+
+  function addSubtree(set, node){
+    if(!node) return;
+    set.add(node.id);
+    node.children.forEach(c => addSubtree(set, c));
+  }
+
+  function stepPruneInfo(upto){
+    const nodeSet = new Set();
+    const rootSet = new Set();
+    for(let i=0;i<=upto && i<steps.length;i++){
+      const s = steps[i];
+      if(s.kind === "CUTOFF" && s.prunedIds){
+        s.prunedIds.forEach(id => {
+          rootSet.add(id);
+          addSubtree(nodeSet, nodeMap.get(id));
+        });
+      }
+    }
+    return {nodeSet, rootSet};
+  }
+
+  // ---------- step render ----------
+  function renderStep(){
+    const svg = svgStep;
+    svg.innerHTML = "";
+    if(!root || steps.length === 0) return;
+    layout(svg);
+    drawLevelLabels(svg);
+
+    const step = steps[cursor];
+    const prune = stepPruneInfo(cursor);
+    const activePath = new Set(step.path || []);
+    const currentId = step.nodeId;
+
+    const values = new Map();
+    for(let i=0;i<=cursor;i++){
+      const s = steps[i];
+      if(s.kind === "RETURN") values.set(s.nodeId, s.v);
+    }
+
+    const all = flatten(root);
+
+    all.forEach(node=>{
+      node.children.forEach(child=>{
+        const y1 = node.y + 20, y2 = child.y - 20, midY = (y1 + y2) / 2;
+        const p = el("path",{
+          d:`M ${node.x} ${y1} C ${node.x} ${midY}, ${child.x} ${midY}, ${child.x} ${y2}`,
+          class:"edge", fill:"none"
+        });
+        if(prune.nodeSet.has(child.id)) p.classList.add("prunedEdge");
+        if(activePath.has(node.id) && activePath.has(child.id)) p.classList.add("activeEdge");
+        svg.appendChild(p);
+      });
+    });
+
+    all.forEach(node=>{
+      const classes = ["node"];
+      if(node.children.length === 0) classes.push("leaf");
+      else classes.push(node.role === "MAX" ? "maxNode" : "minNode");
+      if(prune.nodeSet.has(node.id)) classes.push("pruned");
+      if(activePath.has(node.id)) classes.push("inpath");
+      if(node.id === currentId) classes.push("current");
+
+      const g = el("g",{class:classes.join(" "), transform:`translate(${node.x},${node.y})`});
+      g.dataset.id = node.id;
+
+      if(node.id === currentId){
+        g.appendChild(el("circle",{cx:0, cy:0, r:30, class:"pulse"}));
+      }
+
+      if(node.children.length === 0){
+        g.appendChild(el("circle",{cx:0, cy:0, r:20}));
+        const value = el("text",{x:0, y:5, "text-anchor":"middle", class:"leafValue"});
+        value.textContent = node.leafValue;
+        g.appendChild(value);
+      } else {
+        g.appendChild(el("polygon",{points: makeTriangle(node.role === "MAX"), class:"shape"}));
+        const role = el("text",{x:0, y:4, "text-anchor":"middle", class:"role"});
+        role.textContent = node.role;
+        g.appendChild(role);
+      }
+
+      let valShow = null;
+      if(values.has(node.id)) valShow = values.get(node.id);
+      else if(node.id === currentId && step.v !== undefined && step.v !== null) valShow = step.v;
+
+      if(node.children.length > 0 && valShow !== null){
+        const vt = el("text",{x:0, y:38, "text-anchor":"middle", class:"mmValue"});
+        vt.textContent = "v=" + fmt(valShow);
+        g.appendChild(vt);
+      }
+
+      if(node.id === currentId && algo === "alphabeta"){
+        if(step.alpha !== undefined && step.alpha !== null){
+          const a = el("text",{x:-28, y:-20, "text-anchor":"middle", class:"abLabel"});
+          a.textContent = "α=" + fmt(step.alpha);
+          g.appendChild(a);
+        }
+        if(step.beta !== undefined && step.beta !== null){
+          const b = el("text",{x:28, y:-20, "text-anchor":"middle", class:"abLabel"});
+          b.textContent = "β=" + fmt(step.beta);
+          g.appendChild(b);
+        }
+      }
+
+      if(prune.rootSet.has(node.id)){
+        const cl = el("text",{x:0, y:60, "text-anchor":"middle", class:"cutlabel"});
+        cl.textContent = "cắt";
+        g.appendChild(cl);
+      }
+
+      svg.appendChild(g);
+    });
+  }
+
+  // ---------- code / player render ----------
+  function renderCode(){
+    const lines = algo === "alphabeta" ? ALPHA_BETA_CODE : MINIMAX_CODE;
+    const activeLine = steps.length ? steps[cursor].line : 1;
+    codeEl.innerHTML = "";
+    lines.forEach((text, i) => {
+      const row = document.createElement("div");
+      row.className = "code-line" + ((i + 1) === activeLine ? " active" : "");
+      const g = document.createElement("span");
+      g.className = "gutter";
+      g.textContent = String(i + 1);
+      const c = document.createElement("span");
+      c.className = "cline";
+      c.textContent = text;
+      row.appendChild(g);
+      row.appendChild(c);
+      codeEl.appendChild(row);
+    });
+    codeNameEl.textContent = algo === "alphabeta" ? "alpha-beta" : "minimax";
+    const act = codeEl.querySelector(".code-line.active");
+    if(act && act.scrollIntoView) act.scrollIntoView({block:"nearest"});
+  }
+
+  function addChip(label, value){
+    const c = document.createElement("span");
+    c.className = "chip";
+    c.innerHTML = "";
+    const b = document.createElement("b");
+    b.textContent = label + ": ";
+    c.appendChild(b);
+    c.appendChild(document.createTextNode(value));
+    chipsEl.appendChild(c);
+  }
+
+  function renderPlayer(){
+    const n = steps.length;
+    counterEl.textContent = `Bước ${n ? Math.min(cursor + 1, n) : 0} / ${n}`;
+    const s = steps[cursor];
+
+    explainEl.textContent = s ? s.text : "Không có bước nào.";
+
+    chipsEl.innerHTML = "";
+    if(s){
+      const node = nodeMap.get(s.nodeId);
+      addChip("node", s.nodeId + (node ? " · " + node.role : ""));
+      addChip("bước", KIND_LABEL[s.kind] || s.kind);
+      if(algo === "alphabeta"){
+        if(s.alpha !== undefined && s.alpha !== null) addChip("α", fmt(s.alpha));
+        if(s.beta !== undefined && s.beta !== null) addChip("β", fmt(s.beta));
+      }
+      if(s.v !== undefined && s.v !== null) addChip("v", fmt(s.v));
+    }
+
+    stackEl.innerHTML = "";
+    const stackPath = s && s.path ? s.path : [];
+    stackPath.forEach((id, idx) => {
+      if(idx > 0){
+        const sep = document.createElement("span");
+        sep.className = "arrow";
+        sep.textContent = "→";
+        stackEl.appendChild(sep);
+      }
+      const b = document.createElement("span");
+      b.className = "stacknode" + (idx === stackPath.length - 1 ? " top" : "");
+      b.textContent = id;
+      stackEl.appendChild(b);
+    });
+
+    btnPrev.disabled = cursor <= 0;
+    btnNext.disabled = n === 0 || cursor >= n - 1;
+    btnReset.disabled = cursor <= 0;
+  }
+
+  function updateStep(){
+    renderStep();
+    renderCode();
+    renderPlayer();
+  }
+
+  function goNext(){
+    stopAuto();
+    if(cursor < steps.length - 1){ cursor++; updateStep(); }
+  }
+  function goPrev(){
+    stopAuto();
+    if(cursor > 0){ cursor--; updateStep(); }
+  }
+  function goReset(){
+    stopAuto();
+    cursor = 0;
+    updateStep();
+  }
+
+  function intervalFromSpeed(){
+    const v = +speedInput.value;
+    return clamp(1400 - v * 120, 180, 1400);
+  }
+  function tickAuto(){
+    if(cursor >= steps.length - 1){ stopAuto(); return; }
+    cursor++;
+    updateStep();
+  }
+  function startAuto(){
+    stopAuto();
+    if(cursor >= steps.length - 1){ cursor = 0; updateStep(); }
+    autoTimer = setInterval(tickAuto, intervalFromSpeed());
+    btnAuto.textContent = "⏸ Dừng";
+  }
+  function stopAuto(){
+    if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+    btnAuto.textContent = "▶ Tự động";
+  }
+  function toggleAuto(){
+    if(autoTimer) stopAuto();
+    else startAuto();
+  }
+
+  function rebuildSteps(){
+    stopAuto();
+    steps = root ? buildTrace(root, algo) : [];
+    cursor = 0;
+  }
+
+  function renderScoreLine(){
+    if(!root) return;
+    const st = treeStats(root);
+    const pr = analyzePruning(root);
+    score.textContent = `Nodes = ${st.count} · Leaves = ${st.leafCount} · Potentially pruned = ${pr.nodes}`;
+  }
+
+  // ==================================================================
+  //  NEW TREE / EVENTS / INIT
+  // ==================================================================
+  function newTree(){
+    if(activeEditor){
+      const {fo} = activeEditor;
+      if(fo.parentNode) fo.parentNode.removeChild(fo);
+      activeEditor = null;
+    }
+    dragState = null;
+    checked = false;
+    predicted.clear();
+    actualPruneRoots.clear();
+    notes.clear();
+
+    let depth = clamp(parseInt(depthInput.value) || 4, 2, 7);
+    let maxB = clamp(parseInt(branchInput.value) || 3, 2, 5);
+    let minB = clamp(parseInt(minBranchInput.value) || 1, 1, maxB);
+    depthInput.value = depth;
+    branchInput.value = maxB;
+    minBranchInput.value = minB;
+
+    if(depth >= 7 && maxB >= 5){
+      maxB = 4;
+      branchInput.value = 4;
+      message.textContent = "Depth 7 + factor 5 hơi quá tải, mình tự hạ factor xuống 4 để cây vẫn gọn và mượt.";
+    } else {
+      const modeName = treeModeInput.value === "max" ? "Max pruning"
+        : treeModeInput.value === "heavy" ? "Prune-heavy" : "Random";
+      message.textContent = `${modeName}: mark các node mà bạn nghĩ cả subtree bắt đầu từ đó sẽ bị prune.`;
+    }
+
+    const mode = treeModeInput.value;
+    root = buildVariedTree(depth, minB, maxB, mode);
+    computeMinimax(root);
+    applyMoveOrdering(root, mode);
+    root.parent = null;
+    rebuildNodeMap();
+
+    rebuildSteps();
+    renderScoreLine();
+    renderPractice();
+    updateStep();
+  }
+
+  // tabs
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+      const tab = t.dataset.tab;
+      activeTab = tab;
+      stepView.hidden = tab !== "step";
+      practiceView.hidden = tab !== "practice";
+      if(tab === "step") updateStep();
+      else renderPractice();
+    });
+  });
+
+  // algo selector
+  document.querySelectorAll("#algoSeg button").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#algoSeg button").forEach(x => x.classList.toggle("active", x === b));
+      algo = b.dataset.algo;
+      rebuildSteps();
+      updateStep();
+    });
+  });
+
+  btnNext.addEventListener("click", goNext);
+  btnPrev.addEventListener("click", goPrev);
+  btnReset.addEventListener("click", goReset);
+  btnAuto.addEventListener("click", toggleAuto);
+  speedInput.addEventListener("input", () => {
+    if(autoTimer){ clearInterval(autoTimer); autoTimer = setInterval(tickAuto, intervalFromSpeed()); }
+  });
+
+  document.getElementById("newTree").addEventListener("click", newTree);
+  document.getElementById("clearMarks").addEventListener("click", clearMarks);
+  document.getElementById("check").addEventListener("click", checkAnswer);
+  document.getElementById("noteMode").addEventListener("click", () => {
+    noteMode = !noteMode;
+    const b = document.getElementById("noteMode");
+    b.textContent = `Note mode: ${noteMode ? "ON" : "OFF"}`;
+    b.classList.toggle("active", noteMode);
+    message.textContent = noteMode
+      ? "Note mode: click node để gõ ngay trên cây · kéo note để di chuyển · double-click note để sửa."
+      : "Note mode đã tắt: click node để đánh dấu prune như bình thường.";
+    renderPractice();
+  });
+
+  depthInput.addEventListener("change", newTree);
+  branchInput.addEventListener("change", newTree);
+  minBranchInput.addEventListener("change", newTree);
+  rootRoleInput.addEventListener("change", newTree);
+  treeModeInput.addEventListener("change", newTree);
+
+  document.addEventListener("keydown", e => {
+    if(activeTab !== "step") return;
+    const tag = (e.target && e.target.tagName) || "";
+    if(tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if(e.key === "ArrowRight"){ e.preventDefault(); goNext(); }
+    else if(e.key === "ArrowLeft"){ e.preventDefault(); goPrev(); }
+    else if(e.key === " "){ e.preventDefault(); toggleAuto(); }
+  });
+
+  newTree();
+})();
+</script>
+</body>
+</html>
